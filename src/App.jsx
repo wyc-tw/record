@@ -106,7 +106,7 @@ const today = new Date();
 const dateStr = `${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`;
 
 const inputSt = {
-  background: T.surface, border:`1px solid ${T.border}`, borderRadius:8,
+  background: T.surface, border:`1px solid ${T.border}`, borderRadius:10,
   padding:"8px 12px", fontSize:14, outline:"none", width:"100%",
   boxSizing:"border-box", fontFamily:"inherit", color:T.text,
 };
@@ -172,7 +172,7 @@ function SetupScreen({onSave}) {
       minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",
       padding:20,fontFamily:"'Noto Sans TC','PingFang TC',sans-serif"
     }}>
-      <div style={{width:"100%",maxWidth:420,background:T.surface,borderRadius:16,padding:"28px 24px",border:`1px solid ${T.border}`}}>
+      <div style={{width:"100%",maxWidth:420,background:T.surface,borderRadius:12,padding:"28px 24px",border:`1px solid ${T.border}`}}>
         <h2 style={{margin:"0 0 8px",fontSize:18,fontWeight:800,color:T.text}}>連接你的試算表</h2>
         <p style={{margin:"0 0 20px",fontSize:12,color:T.muted,lineHeight:1.7}}>
           請先到你的 Google 試算表 → 擴充功能 → Apps Script，貼上提供給你的程式碼，部署為「網頁應用程式」（存取權限選「任何人」），把取得的網址填在下面。
@@ -468,6 +468,7 @@ export default function AssetTracker() {
   const [editTodoForm,setEditTodoForm]   = useState(null);
   const [openTodoSwipeId,setOpenTodoSwipeId] = useState(null);
   const [confirmTodoId,setConfirmTodoId] = useState(null); // 待確認「標記完成」的待辦 id
+  const [showAddTodo,setShowAddTodo] = useState(false); // 新增待辦彈窗（點右下角浮動按鈕才會出現）
 
   // 追蹤「剛新增、還在等首次背景讀取回來確認」的項目 id。
   // 只有這些 id 在首次背景讀取合併時會被保護，其餘一律以伺服器最新資料為準，
@@ -956,6 +957,7 @@ export default function AssetTracker() {
       pendingAddIdsRef.current.add(result.id);
       setTodos(p=>[...p,result]);
       setNewTodoContent("");
+      setShowAddTodo(false);
     } catch(e) { showToast("新增失敗："+e.message,"error"); }
     setTodoSaving(false);
   };
@@ -1054,7 +1056,7 @@ export default function AssetTracker() {
                 <button key={k} onClick={()=>setChartType(k)} style={{
                   flex:1,background:chartType===k?T.card:"transparent",
                   color:chartType===k?T.text:T.muted,
-                  border:"none",borderRadius:9,padding:"8px 0",
+                  border:"none",borderRadius:10,padding:"8px 0",
                   fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
                   transition:"all 0.15s"
                 }}>{l}</button>
@@ -1115,9 +1117,9 @@ export default function AssetTracker() {
                     const diff=s.total_value-prev.total_value;
                     return <div style={{fontSize:12,fontWeight:700,color:diff>=0?"#10B981":"#EF4444"}}>{diff>=0?"▲":"▼"} {fmt(Math.abs(diff))}</div>;
                   })()}
-                  {i===0&&<div style={{fontSize:10,background:"#10B98120",color:"#10B981",borderRadius:8,padding:"2px 8px",fontWeight:700}}>最新</div>}
+                  {i===0&&<div style={{fontSize:10,background:"#10B98120",color:"#10B981",borderRadius:10,padding:"2px 8px",fontWeight:700}}>最新</div>}
                   <button onClick={()=>{if(window.confirm("確定刪除這筆快照？"))deleteSnapshot(s.id);}} style={{
-                    background:"none",border:`1px solid ${T.border}`,borderRadius:8,
+                    background:"none",border:`1px solid ${T.border}`,borderRadius:10,
                     padding:"4px 10px",cursor:"pointer",fontSize:11,color:T.muted,fontFamily:"inherit"
                   }}>刪除</button>
                 </div>
@@ -1279,7 +1281,7 @@ export default function AssetTracker() {
         <div style={{padding:"20px 16px 40px"}}>
           {/* 月份切換：左右箭頭一格一格翻，或直接點月份文字跳到任何月份 */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:16}}>
-            <button onClick={()=>shiftMonth(-1)} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:8,width:36,height:36,color:T.text,cursor:"pointer",fontSize:16}}>‹</button>
+            <button onClick={()=>shiftMonth(-1)} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:10,width:36,height:36,color:T.text,cursor:"pointer",fontSize:16}}>‹</button>
             <div style={{position:"relative",minWidth:100,textAlign:"center"}}>
               <div style={{fontSize:16,fontWeight:800}}>{monthLabel}</div>
               <input
@@ -1288,7 +1290,7 @@ export default function AssetTracker() {
                 style={{position:"absolute",inset:0,opacity:0,cursor:"pointer",border:"none",width:"100%",minWidth:0}}
               />
             </div>
-            <button onClick={()=>shiftMonth(1)} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:8,width:36,height:36,color:T.text,cursor:"pointer",fontSize:16}}>›</button>
+            <button onClick={()=>shiftMonth(1)} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:10,width:36,height:36,color:T.text,cursor:"pointer",fontSize:16}}>›</button>
           </div>
 
           {/* 本月總覽 */}
@@ -1311,7 +1313,7 @@ export default function AssetTracker() {
           </div>
 
           {/* ＋ 新增帳單（完全手動，不會有任何自動觸發） */}
-          <div style={{background:T.surface,borderRadius:16,border:`1px solid ${T.border}`,padding:16,marginBottom:16}}>
+          <div style={{background:T.surface,borderRadius:12,border:`1px solid ${T.border}`,padding:16,marginBottom:16}}>
             {billTemplates.length>0&&(
               <div style={{marginBottom:14}}>
                 <div style={labelSt}>常用名稱（點選快速帶入）</div>
@@ -1423,11 +1425,11 @@ export default function AssetTracker() {
                     </div>
                     <div style={{display:"flex",gap:8,marginTop:4}}>
                       <button onClick={()=>saveEditBill(b.id)} style={{
-                        flex:1,background:"#10B981",color:"#fff",border:"none",borderRadius:8,
+                        flex:1,background:"#10B981",color:"#fff",border:"none",borderRadius:10,
                         padding:"9px 0",cursor:"pointer",fontWeight:700,fontFamily:"inherit"
                       }}>✓ 儲存</button>
                       <button onClick={()=>{setEditingBillId(null);setEditBillForm(null);}} style={{
-                        background:T.card,color:T.muted,border:`1px solid ${T.border}`,borderRadius:8,
+                        background:T.card,color:T.muted,border:`1px solid ${T.border}`,borderRadius:10,
                         padding:"9px 16px",cursor:"pointer",fontFamily:"inherit"
                       }}>取消</button>
                     </div>
@@ -1451,9 +1453,9 @@ export default function AssetTracker() {
                       }}>🔄 自動</div>
                     ) : (
                       <button onClick={()=>updateBillField(b.id,{paid:!b.paid,paid_date: !b.paid? new Date().toISOString().slice(0,10) : ""})} style={{
-                        width:24,height:24,borderRadius:"50%",border:`2px solid ${b.paid?"#10B981":T.border}`,
+                        width:32,height:32,borderRadius:"50%",border:`2px solid ${b.paid?"#10B981":T.border}`,
                         background:b.paid?"#10B981":"transparent",color:"#fff",cursor:"pointer",
-                        display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,padding:0
+                        display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0,padding:0
                       }}>{b.paid?"✓":""}</button>
                     )}
                     <div style={{flex:1,minWidth:0}}>
@@ -1503,7 +1505,7 @@ export default function AssetTracker() {
                     通常是自動扣款
                   </label>
                   <button onClick={addBillTemplate} style={{
-                    width:"100%",background:T.accent,color:"#fff",border:"none",borderRadius:8,
+                    width:"100%",background:T.accent,color:"#fff",border:"none",borderRadius:10,
                     padding:"9px 0",cursor:"pointer",fontWeight:700,fontFamily:"inherit"
                   }}>新增常用名稱</button>
                 </div>
@@ -1511,7 +1513,7 @@ export default function AssetTracker() {
                   {billTemplates.map(t=>(
                     <div key={t.id} style={{
                       display:"flex",alignItems:"center",justifyContent:"space-between",
-                      background:T.card,borderRadius:8,padding:"8px 12px",fontSize:13
+                      background:T.card,borderRadius:10,padding:"8px 12px",fontSize:13
                     }}>
                       <div>
                         <span>{t.name}</span>
@@ -1553,13 +1555,13 @@ export default function AssetTracker() {
         <div style={{padding:"20px 16px 40px"}}>
           {/* 月份切換 */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:16}}>
-            <button onClick={()=>shiftExpensesMonth(-1)} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:8,width:36,height:36,color:T.text,cursor:"pointer",fontSize:16}}>‹</button>
+            <button onClick={()=>shiftExpensesMonth(-1)} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:10,width:36,height:36,color:T.text,cursor:"pointer",fontSize:16}}>‹</button>
             <div style={{fontSize:16,fontWeight:800,minWidth:100,textAlign:"center"}}>{expensesMonthLabel}</div>
-            <button onClick={()=>shiftExpensesMonth(1)} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:8,width:36,height:36,color:T.text,cursor:"pointer",fontSize:16}}>›</button>
+            <button onClick={()=>shiftExpensesMonth(1)} style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:10,width:36,height:36,color:T.text,cursor:"pointer",fontSize:16}}>›</button>
           </div>
 
           {/* 快速新增 */}
-          <div style={{background:T.surface,borderRadius:16,border:`1px solid ${T.border}`,padding:16,marginBottom:16}}>
+          <div style={{background:T.surface,borderRadius:12,border:`1px solid ${T.border}`,padding:16,marginBottom:16}}>
             <div style={{marginBottom:14}}>
               <div style={labelSt}>日期</div>
               <input type="date" value={expenseForm.date} onChange={e=>setExpenseForm(f=>({...f,date:e.target.value}))} style={{...inputSt,minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
@@ -1631,7 +1633,7 @@ export default function AssetTracker() {
           {/* 甜甜圈圖 + 分類佔比 */}
           {expenseCatBreakdown.length>0&&(
             <div style={{
-              background:T.surface,borderRadius:16,border:`1px solid ${T.border}`,
+              background:T.surface,borderRadius:12,border:`1px solid ${T.border}`,
               padding:16,marginBottom:16,display:"flex",gap:16,alignItems:"center"
             }}>
               <DonutChart data={expenseCatBreakdown} colors={EXPENSE_PALETTE} size={110} centerLabel="本月支出"/>
@@ -1699,11 +1701,11 @@ export default function AssetTracker() {
                             </div>
                             <div style={{display:"flex",gap:8,marginTop:4}}>
                               <button onClick={()=>saveEditExpense(e.id)} style={{
-                                flex:1,background:"#10B981",color:"#fff",border:"none",borderRadius:8,
+                                flex:1,background:"#10B981",color:"#fff",border:"none",borderRadius:10,
                                 padding:"9px 0",cursor:"pointer",fontWeight:700,fontFamily:"inherit"
                               }}>✓ 儲存</button>
                               <button onClick={()=>{setEditingExpenseId(null);setEditExpenseForm(null);}} style={{
-                                background:T.card,color:T.muted,border:`1px solid ${T.border}`,borderRadius:8,
+                                background:T.card,color:T.muted,border:`1px solid ${T.border}`,borderRadius:10,
                                 padding:"9px 16px",cursor:"pointer",fontFamily:"inherit"
                               }}>取消</button>
                             </div>
@@ -1764,25 +1766,6 @@ export default function AssetTracker() {
             <span style={{fontSize:15,fontWeight:800,color:T.accent}}>{undoneCount} 項</span>
           </div>
 
-          {/* ＋ 新增待辦 */}
-          <div style={{background:T.surface,borderRadius:16,border:`1px solid ${T.border}`,padding:16,marginBottom:16}}>
-            <div style={{marginBottom:14}}>
-              <div style={labelSt}>內容</div>
-              <input
-                value={newTodoContent}
-                onChange={e=>setNewTodoContent(e.target.value)}
-                onKeyDown={e=>{ if(e.key==="Enter") addTodo(); }}
-                placeholder="例如：續繳車險、更新身分證地址"
-                style={inputSt}
-              />
-            </div>
-            <button onClick={addTodo} disabled={todoSaving} style={{
-              width:"100%",background:T.accent,color:"#fff",border:"none",borderRadius:12,
-              padding:"12px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
-              opacity:todoSaving?0.6:1
-            }}>{todoSaving?"新增中...":"＋ 新增待辦"}</button>
-          </div>
-
           {/* 待辦清單 */}
           {visibleTodos.length===0 ? (
             <div style={{textAlign:"center",color:T.muted,padding:"40px 0",fontSize:13}}>
@@ -1802,11 +1785,11 @@ export default function AssetTracker() {
                     </div>
                     <div style={{display:"flex",gap:8,marginTop:4}}>
                       <button onClick={()=>saveEditTodo(t.id)} style={{
-                        flex:1,background:"#10B981",color:"#fff",border:"none",borderRadius:8,
+                        flex:1,background:"#10B981",color:"#fff",border:"none",borderRadius:10,
                         padding:"9px 0",cursor:"pointer",fontWeight:700,fontFamily:"inherit"
                       }}>✓ 儲存</button>
                       <button onClick={()=>{setEditingTodoId(null);setEditTodoForm(null);}} style={{
-                        background:T.card,color:T.muted,border:`1px solid ${T.border}`,borderRadius:8,
+                        background:T.card,color:T.muted,border:`1px solid ${T.border}`,borderRadius:10,
                         padding:"9px 16px",cursor:"pointer",fontFamily:"inherit"
                       }}>取消</button>
                     </div>
@@ -1825,9 +1808,9 @@ export default function AssetTracker() {
                     padding:"12px 14px",display:"flex",alignItems:"center",gap:10
                   }}>
                     <button onClick={()=>t.done?uncompleteTodo(t.id):requestCompleteTodo(t.id)} style={{
-                      width:24,height:24,borderRadius:"50%",border:`2px solid ${t.done?"#10B981":T.border}`,
+                      width:32,height:32,borderRadius:"50%",border:`2px solid ${t.done?"#10B981":T.border}`,
                       background:t.done?"#10B981":"transparent",color:"#fff",cursor:"pointer",
-                      display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0,padding:0
+                      display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0,padding:0
                     }}>{t.done?"✓":""}</button>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:14,fontWeight:700,color:t.done?T.muted:T.text,textDecoration:t.done?"line-through":"none"}}>{t.content}</div>
@@ -1856,6 +1839,59 @@ export default function AssetTracker() {
           onConfirm={confirmCompleteTodo}
           onCancel={()=>setConfirmTodoId(null)}
         />
+
+        {/* 浮動新增按鈕 */}
+        <button onClick={()=>setShowAddTodo(true)} style={{
+          position:"fixed",bottom:28,right:24,
+          width:56,height:56,borderRadius:"50%",
+          background:`linear-gradient(135deg,${T.accent},#5B8CF5)`,
+          border:"none",cursor:"pointer",
+          fontSize:28,color:"#fff",fontWeight:300,
+          boxShadow:"0 8px 24px rgba(124,110,247,0.5)",
+          display:"flex",alignItems:"center",justifyContent:"center",
+          lineHeight:1,zIndex:100
+        }}>+</button>
+
+        {/* 新增待辦彈窗 */}
+        {showAddTodo&&(
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:1000}}
+            onClick={()=>setShowAddTodo(false)}
+          >
+            <div
+              onClick={e=>e.stopPropagation()}
+              style={{
+                width:"100%",maxWidth:500,background:T.surface,borderRadius:"20px 20px 0 0",
+                padding:"28px 24px 40px",boxShadow:"0 -8px 40px rgba(0,0,0,0.5)"
+              }}
+            >
+              <div style={{width:36,height:4,borderRadius:2,background:T.border,margin:"0 auto 20px"}}/>
+              <h3 style={{margin:"0 0 16px",fontSize:18,fontWeight:800}}>新增待辦事項</h3>
+              <div style={{marginBottom:20}}>
+                <div style={labelSt}>內容</div>
+                <input
+                  autoFocus
+                  value={newTodoContent}
+                  onChange={e=>setNewTodoContent(e.target.value)}
+                  onKeyDown={e=>{ if(e.key==="Enter") addTodo(); }}
+                  placeholder="例如：續繳車險、更新身分證地址"
+                  style={inputSt}
+                />
+              </div>
+              <div style={{display:"flex",gap:10,flexWrap:"nowrap"}}>
+                <button onClick={addTodo} disabled={todoSaving} style={{
+                  flex:"1 1 auto",minWidth:0,background:T.accent,color:"#fff",border:"none",
+                  borderRadius:10,padding:"13px 0",fontSize:15,fontWeight:700,
+                  cursor:"pointer",fontFamily:"inherit",opacity:todoSaving?0.6:1,whiteSpace:"nowrap"
+                }}>{todoSaving?"新增中...":"＋ 新增待辦"}</button>
+                <button onClick={()=>setShowAddTodo(false)} style={{
+                  flex:"0 0 auto",background:T.card,color:T.muted,border:`1px solid ${T.border}`,
+                  borderRadius:10,padding:"13px 20px",fontSize:15,whiteSpace:"nowrap",
+                  cursor:"pointer",fontFamily:"inherit"
+                }}>取消</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1905,14 +1941,14 @@ export default function AssetTracker() {
               {/* Bank header */}
               <div onClick={()=>toggleBank(bank)} style={{
                 display:"flex",alignItems:"center",gap:10,
-                padding:"14px 16px",borderRadius:16,
+                padding:"14px 16px",borderRadius:12,
                 background:T.surface,border:`1px solid ${T.border}`,
                 cursor:"pointer",userSelect:"none"
               }}>
                 <div style={{width:4,height:32,borderRadius:2,background:bCol,flexShrink:0}}/>
                 <span style={{fontWeight:800,fontSize:15,flex:1}}>{bank}</span>
                 {(bank==="國泰(共有)"||bank==="永豐(共有)")&&(
-                  <span style={{fontSize:10,background:"#F472B620",color:"#F472B6",borderRadius:8,padding:"2px 8px",fontWeight:700}}>共有</span>
+                  <span style={{fontSize:10,background:"#F472B620",color:"#F472B6",borderRadius:10,padding:"2px 8px",fontWeight:700}}>共有</span>
                 )}
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:15,fontWeight:800,color:bank==="中國信託"?"#FFE603":T.text}}>{fmt(bVal)}</div>
@@ -1993,8 +2029,8 @@ export default function AssetTracker() {
                                     ));
                                   })()}
                                   <div style={{display:"flex",gap:6}}>
-                                    <button onClick={()=>saveEdit(asset.id)} disabled={saving} style={{background:"#10B981",color:"#fff",border:"none",borderRadius:8,padding:"7px 16px",cursor:"pointer",fontWeight:700,fontFamily:"inherit",opacity:saving?0.6:1}}>{saving?"...":"✓"}</button>
-                                    <button onClick={()=>setEditingId(null)} style={{background:T.card,color:T.muted,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 12px",cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                                    <button onClick={()=>saveEdit(asset.id)} disabled={saving} style={{background:"#10B981",color:"#fff",border:"none",borderRadius:10,padding:"7px 16px",cursor:"pointer",fontWeight:700,fontFamily:"inherit",opacity:saving?0.6:1}}>{saving?"...":"✓"}</button>
+                                    <button onClick={()=>setEditingId(null)} style={{background:T.card,color:T.muted,border:`1px solid ${T.border}`,borderRadius:10,padding:"7px 12px",cursor:"pointer",fontFamily:"inherit"}}>✕</button>
                                   </div>
                                 </div>
                               );
@@ -2034,7 +2070,7 @@ export default function AssetTracker() {
       {/* 資產配置圓餅圖：偶爾看一下整體配置狀況，放在頁面最下方 */}
       <div style={{padding:"20px 20px 32px"}}>
         <div style={{
-          background:T.surface,borderRadius:16,border:`1px solid ${T.border}`,
+          background:T.surface,borderRadius:12,border:`1px solid ${T.border}`,
           padding:18,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"
         }}>
           <div style={{flexShrink:0}}>
