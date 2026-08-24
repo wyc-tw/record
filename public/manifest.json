@@ -1,0 +1,13 @@
+{
+  "name": "WYC的祕密花園",
+  "short_name": "WYC",
+  "start_url": "/asset-tracker/",
+  "scope": "/asset-tracker/",
+  "display": "standalone",
+  "background_color": "#0F1117",
+  "theme_color": "#12141E",
+  "icons": [
+    { "src": "/asset-tracker/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/asset-tracker/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

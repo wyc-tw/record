@@ -2,8 +2,24 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>WYC的祕密花園</title>
+
+    <!-- 加入主畫面後：全螢幕開啟（standalone），不顯示 Safari 網址列 -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- 狀態列樣式：跟 App 深色底一致 -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- 主畫面圖示下方顯示的名稱（比網頁標題短，避免被截斷） -->
+    <meta name="apple-mobile-web-app-title" content="WYC" />
+    <meta name="theme-color" content="#12141E" />
+
+    <!-- iPhone/iPad 加入主畫面用的圖示 -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Android / 其他支援 PWA 的瀏覽器 -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+
     <style>
       html, body { margin: 0; padding: 0; background: #0F1117; }
       #root { min-height: 100vh; }
