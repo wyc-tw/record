@@ -451,7 +451,7 @@ export default function AssetTracker() {
   const [openExpenseSwipeId,setOpenExpenseSwipeId] = useState(null);
   const [expenseForm,setExpenseForm] = useState(()=>{
     const d=new Date();
-    return {date:d.toISOString().slice(0,10),category:"",amount:"",payment_method:"現金",note:""};
+    return {date:d.toISOString().slice(0,10),category:"",amount:"",payment_method:"現金",note:"",type:"expense"};
   });
   const [showTemplateManager,setShowTemplateManager] = useState(false);
   const [billSaving,setBillSaving]       = useState(false);
@@ -877,12 +877,9 @@ export default function AssetTracker() {
     const d = new Date(y, m-1+delta, 1);
     setExpensesMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
   };
-  const monthExpenseTotal = useMemo(()=>monthExpenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0),[monthExpenses]);
-  const expenseCatBreakdown = useMemo(()=>{
-    const m={};
-    monthExpenses.forEach(e=>{ m[e.category]=(m[e.category]||0)+(parseFloat(e.amount)||0); });
-    return Object.entries(m).map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value);
-  },[monthExpenses]);
+  const monthExpenseTotal = useMemo(()=>monthExpenses.filter(e=>(e.type||"expense")==="expense").reduce((s,e)=>s+(parseFloat(e.amount)||0),0),[monthExpenses]);
+  const monthIncomeTotal = useMemo(()=>monthExpenses.filter(e=>e.type==="income").reduce((s,e)=>s+(parseFloat(e.amount)||0),0),[monthExpenses]);
+  const monthNetTotal = monthIncomeTotal - monthExpenseTotal;
   const expensesByDate = useMemo(()=>{
     const groups={};
     monthExpenses.forEach(e=>{ (groups[e.date]=groups[e.date]||[]).push(e); });
@@ -897,11 +894,12 @@ export default function AssetTracker() {
       const result = await apiPost({action:"addExpense", payload:{
         date:expenseForm.date, category:expenseForm.category, amount:amt,
         payment_method:expenseForm.payment_method, note:expenseForm.note||"",
+        type:expenseForm.type||"expense",
       }});
       pendingAddIdsRef.current.add(result.id);
       setExpenses(p=>[...p,result]);
       setExpenseForm(f=>({...f,amount:"",note:""}));
-      showToast("已記一筆");
+      showToast(expenseForm.type==="income"?"已記一筆收入":"已記一筆支出");
     } catch(e) { showToast("新增失敗："+e.message,"error"); }
     setExpenseSaving(false);
   };
@@ -916,7 +914,7 @@ export default function AssetTracker() {
 
   const startEditExpense = (e) => {
     setEditingExpenseId(e.id);
-    setEditExpenseForm({date:e.date||"", category:e.category||"", amount:e.amount||"", payment_method:e.payment_method||"現金", note:e.note||""});
+    setEditExpenseForm({date:e.date||"", category:e.category||"", amount:e.amount||"", payment_method:e.payment_method||"現金", note:e.note||"", type:e.type||"expense"});
   };
   const saveEditExpense = async (id) => {
     const amt = parseFloat(editExpenseForm.amount);
@@ -924,6 +922,7 @@ export default function AssetTracker() {
     const payload = {
       date: editExpenseForm.date, category: editExpenseForm.category, amount: amt,
       payment_method: editExpenseForm.payment_method, note: editExpenseForm.note||"",
+      type: editExpenseForm.type||"expense",
     };
     setExpenses(p=>p.map(e=>e.id===id?{...e,...payload}:e));
     setEditingExpenseId(null); setEditExpenseForm(null);
@@ -1564,6 +1563,23 @@ export default function AssetTracker() {
 
           {/* 快速新增 */}
           <div style={{background:T.surface,borderRadius:12,border:`1px solid ${T.border}`,padding:16,marginBottom:16}}>
+            <div style={{marginBottom:14,display:"flex",gap:8}}>
+              {[{value:"expense",label:"➖ 支出"},{value:"income",label:"➕ 收入"}].map(t=>{
+                const active = (expenseForm.type||"expense")===t.value;
+                return (
+                  <button key={t.value} type="button"
+                    onClick={()=>setExpenseForm(f=>({...f,type:t.value}))}
+                    style={{
+                      flex:"1 1 auto",background:active?`${T.accent}22`:T.card,
+                      border:`1px solid ${active?T.accent:T.border}`,
+                      color:active?T.accent:T.text,
+                      borderRadius:10,padding:"10px 0",fontSize:13,fontWeight:active?700:500,
+                      cursor:"pointer",fontFamily:"inherit"
+                    }}
+                  >{t.label}</button>
+                );
+              })}
+            </div>
             <div style={{marginBottom:14}}>
               <div style={labelSt}>日期</div>
               <input type="date" value={expenseForm.date} onChange={e=>setExpenseForm(f=>({...f,date:e.target.value}))} style={{...inputSt,minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
@@ -1632,34 +1648,34 @@ export default function AssetTracker() {
             }}>{expenseSaving?"記錄中...":"＋ 新增記錄"}</button>
           </div>
 
-          {/* 甜甜圈圖 + 分類佔比 */}
-          {expenseCatBreakdown.length>0&&(
-            <div style={{
-              background:T.surface,borderRadius:12,border:`1px solid ${T.border}`,
-              padding:16,marginBottom:16,display:"flex",gap:16,alignItems:"center"
-            }}>
-              <DonutChart data={expenseCatBreakdown} colors={EXPENSE_PALETTE} size={110} centerLabel="本月支出"/>
-              <div style={{flex:1,display:"flex",flexDirection:"column",gap:6,minWidth:0}}>
-                {expenseCatBreakdown.slice(0,5).map((c,i)=>(
-                  <div key={c.name} style={{display:"flex",alignItems:"center",gap:6,fontSize:12}}>
-                    <div style={{width:8,height:8,borderRadius:4,background:EXPENSE_PALETTE[i%EXPENSE_PALETTE.length],flexShrink:0}}/>
-                    <div style={{flex:1,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</div>
-                    <div style={{color:T.muted,flexShrink:0}}>{fmt(c.value)}</div>
-                  </div>
-                ))}
-              </div>
+          {/* 本月收入／支出／結餘 */}
+          <div style={{
+            background:T.surface,borderRadius:12,border:`1px solid ${T.border}`,
+            padding:16,marginBottom:16,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8
+          }}>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontSize:11,color:T.muted,marginBottom:4}}>本月收入</div>
+              <div style={{fontSize:15,fontWeight:800,color:T.text}}>{fmt(monthIncomeTotal)}</div>
             </div>
-          )}
+            <div style={{textAlign:"center",borderLeft:`1px solid ${T.border}`,borderRight:`1px solid ${T.border}`}}>
+              <div style={{fontSize:11,color:T.muted,marginBottom:4}}>本月支出</div>
+              <div style={{fontSize:15,fontWeight:800,color:T.text}}>{fmt(monthExpenseTotal)}</div>
+            </div>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontSize:11,color:T.muted,marginBottom:4}}>本月結餘</div>
+              <div style={{fontSize:15,fontWeight:800,color:T.text}}>{fmt(monthNetTotal)}</div>
+            </div>
+          </div>
 
-          {expenseCatBreakdown.length===0&&(
-            <div style={{textAlign:"center",color:T.muted,padding:"20px 0",fontSize:13}}>本月尚無支出紀錄</div>
+          {monthExpenses.length===0&&(
+            <div style={{textAlign:"center",color:T.muted,padding:"20px 0",fontSize:13}}>本月尚無記帳紀錄</div>
           )}
 
           {/* 明細列表，依日期分組 */}
           {expensesByDate.length>0&&(
             <div style={{marginBottom:24}}>
               {expensesByDate.map(([date,list])=>{
-                const dayTotal = list.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+                const dayTotal = list.reduce((s,e)=>s+((e.type==="income"?1:-1)*(parseFloat(e.amount)||0)),0);
                 return (
                   <div key={date} style={{marginBottom:14}}>
                     <div style={{display:"flex",justifyContent:"space-between",padding:"0 4px 6px",fontSize:12,color:T.muted}}>
@@ -1673,6 +1689,23 @@ export default function AssetTracker() {
                             background:T.surface,borderRadius:10,border:`1px solid ${T.accent}40`,
                             padding:"12px",display:"flex",flexDirection:"column",gap:8
                           }}>
+                            <div style={{display:"flex",gap:8}}>
+                              {[{value:"expense",label:"➖ 支出"},{value:"income",label:"➕ 收入"}].map(t=>{
+                                const active=(editExpenseForm.type||"expense")===t.value;
+                                return (
+                                  <button key={t.value} type="button"
+                                    onClick={()=>setEditExpenseForm(f=>({...f,type:t.value}))}
+                                    style={{
+                                      flex:"1 1 auto",background:active?`${T.accent}22`:T.card,
+                                      border:`1px solid ${active?T.accent:T.border}`,
+                                      color:active?T.accent:T.text,
+                                      borderRadius:10,padding:"7px 0",fontSize:12,fontWeight:active?700:500,
+                                      cursor:"pointer",fontFamily:"inherit"
+                                    }}
+                                  >{t.label}</button>
+                                );
+                              })}
+                            </div>
                             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                               <div>
                                 <div style={labelSt}>日期</div>
@@ -1726,7 +1759,7 @@ export default function AssetTracker() {
                             padding:"10px 12px",display:"flex",alignItems:"center",gap:10
                           }}>
                             <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontSize:13,fontWeight:700,color:T.text}}>{expenseCatIcon(e.category)} {e.category}</div>
+                              <div style={{fontSize:13,fontWeight:700,color:T.text}}>{e.type==="income"?"⬆️":"⬇️"} {expenseCatIcon(e.category)} {e.category}</div>
                               <div style={{fontSize:11,color:T.muted}}>
                                 {e.payment_method}{e.note?`・${e.note}`:""}
                               </div>
