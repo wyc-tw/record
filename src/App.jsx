@@ -377,25 +377,39 @@ const NAV_TABS = [
 ];
 
 function TagNav({currentPage, setPage}) {
+  const [open,setOpen] = useState(false);
   return (
-    <div style={{display:"flex",gap:8,overflowX:"auto",WebkitOverflowScrolling:"touch",paddingBottom:2}}>
-      {NAV_TABS.map(tab=>{
-        const active = tab.group ? tab.group.includes(currentPage) : currentPage===tab.key;
-        const onClick = tab.group ? ()=>setPage("main") : ()=>{ if(!active) setPage(tab.key); };
-        return (
-          <button key={tab.key}
-            onClick={onClick}
-            style={{
-              flexShrink:0,
-              background: active?T.accent:T.surface,
-              border: active?"none":`1px solid ${T.border}`,
-              borderRadius:20,padding:"8px 14px",cursor:"pointer",fontSize:12,fontFamily:"inherit",
-              color: active?"#fff":T.muted,fontWeight: active?700:500,
-              display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap"
-            }}
-          ><span style={{fontSize:14}}>{tab.icon}</span>{tab.label}</button>
-        );
-      })}
+    <div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+        <div style={{fontSize:20,fontWeight:800,flexShrink:0}}>WYC</div>
+        <button onClick={()=>setOpen(v=>!v)} style={{
+          flexShrink:0,width:36,height:36,borderRadius:"50%",
+          background:open?T.accent:T.surface,border:`1px solid ${open?T.accent:T.border}`,
+          color:open?"#fff":T.muted,cursor:"pointer",fontSize:15,
+          display:"flex",alignItems:"center",justifyContent:"center"
+        }}>{open?"✕":"☰"}</button>
+      </div>
+      {open&&(
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:12}}>
+          {NAV_TABS.map(tab=>{
+            const active = tab.group ? tab.group.includes(currentPage) : currentPage===tab.key;
+            const onClick = tab.group ? ()=>{setPage("main");setOpen(false);} : ()=>{ if(!active) setPage(tab.key); setOpen(false); };
+            return (
+              <button key={tab.key}
+                onClick={onClick}
+                style={{
+                  flexShrink:0,
+                  background: active?T.accent:T.surface,
+                  border: active?"none":`1px solid ${T.border}`,
+                  borderRadius:20,padding:"8px 14px",cursor:"pointer",fontSize:12,fontFamily:"inherit",
+                  color: active?"#fff":T.muted,fontWeight: active?700:500,
+                  display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap"
+                }}
+              ><span style={{fontSize:14}}>{tab.icon}</span>{tab.label}</button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -1033,10 +1047,7 @@ export default function AssetTracker() {
         background:`linear-gradient(160deg, #1A1D27 0%, #12141E 100%)`,
         padding:"24px 20px 20px",borderBottom:`1px solid ${T.border}`,
       }}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-          <div style={{fontSize:20,fontWeight:800,flexShrink:0}}>WYC</div>
-          <TagNav currentPage="history" setPage={setPage} />
-        </div>
+        <TagNav currentPage="history" setPage={setPage} />
       </div>
 
 
@@ -1150,10 +1161,7 @@ export default function AssetTracker() {
         background:`linear-gradient(160deg, #1A1D27 0%, #12141E 100%)`,
         padding:"24px 20px 20px",borderBottom:`1px solid ${T.border}`,
       }}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-          <div style={{fontSize:20,fontWeight:800,flexShrink:0}}>WYC</div>
-          <TagNav currentPage="breakdown" setPage={setPage} />
-        </div>
+        <TagNav currentPage="breakdown" setPage={setPage} />
       </div>
 
       <div style={{padding:"20px 16px 40px"}}>
@@ -1272,10 +1280,7 @@ export default function AssetTracker() {
           background:`linear-gradient(160deg, #1A1D27 0%, #12141E 100%)`,
           padding:"24px 20px 20px",borderBottom:`1px solid ${T.border}`,
         }}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-            <div style={{fontSize:20,fontWeight:800,flexShrink:0}}>WYC</div>
-            <TagNav currentPage="bills" setPage={setPage} />
-          </div>
+          <TagNav currentPage="bills" setPage={setPage} />
         </div>
 
         <div style={{padding:"20px 16px 40px"}}>
@@ -1546,10 +1551,7 @@ export default function AssetTracker() {
           background:`linear-gradient(160deg, #1A1D27 0%, #12141E 100%)`,
           padding:"24px 20px 20px",borderBottom:`1px solid ${T.border}`,
         }}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-            <div style={{fontSize:20,fontWeight:800,flexShrink:0}}>WYC</div>
-            <TagNav currentPage="expenses" setPage={setPage} />
-          </div>
+          <TagNav currentPage="expenses" setPage={setPage} />
         </div>
 
         <div style={{padding:"20px 16px 40px"}}>
@@ -1754,10 +1756,7 @@ export default function AssetTracker() {
           background:`linear-gradient(160deg, #1A1D27 0%, #12141E 100%)`,
           padding:"24px 20px 20px",borderBottom:`1px solid ${T.border}`,
         }}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-            <div style={{fontSize:20,fontWeight:800,flexShrink:0}}>WYC</div>
-            <TagNav currentPage="todos" setPage={setPage} />
-          </div>
+          <TagNav currentPage="todos" setPage={setPage} />
         </div>
 
         <div style={{padding:"20px 16px 40px"}}>
@@ -1907,11 +1906,7 @@ export default function AssetTracker() {
         padding:"24px 20px 20px",
         borderBottom:`1px solid ${T.border}`,
       }}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-          <div style={{fontSize:20,fontWeight:800,flexShrink:0}}>WYC</div>
-          {/* 固定標籤列 */}
-          <TagNav currentPage="main" setPage={setPage} />
-        </div>
+        <TagNav currentPage="main" setPage={setPage} />
       </div>
 
       {/* Owner filter */}
