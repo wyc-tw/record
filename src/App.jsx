@@ -22,21 +22,55 @@ function clearSheetsConfig() {
 
 async function apiGet(action, params={}) {
   const qs = new URLSearchParams({action, ...params}).toString();
-  const res = await fetch(`${SHEETS_API_URL}?${qs}`);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data;
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let data;
+    try {
+      const res = await fetch(`${SHEETS_API_URL}?${qs}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      data = await res.json();
+    } catch (networkErr) {
+      if (attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, 500 * attempt));
+        continue;
+      }
+      throw new Error("網路連線不穩定，讀取資料失敗，請稍後再試");
+    }
+    if (data.error) throw new Error(data.error);
+    return data;
+  }
 }
 async function apiPost(body) {
-  const res = await fetch(SHEETS_API_URL, {
-    method: "POST",
-    // 用 text/plain 避免瀏覽器發送 CORS 預檢請求（Apps Script 不會回應 OPTIONS）
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data;
+  // update/delete 類操作重複執行結果一樣（冪等），可以安全自動重試；
+  // add 類操作每次都會新增一列，若貿然重試可能造成資料重複，所以不重試
+  const idempotent = typeof body.action === "string" && (body.action.startsWith("update") || body.action.startsWith("delete"));
+  const maxAttempts = idempotent ? 3 : 1;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let data;
+    try {
+      const res = await fetch(SHEETS_API_URL, {
+        method: "POST",
+        // 用 text/plain 避免瀏覽器發送 CORS 預檢請求（Apps Script 不會回應 OPTIONS）
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      data = await res.json();
+    } catch (networkErr) {
+      // 網路層或回應解析失敗（常見於 Apps Script 偶發的轉址失敗），
+      // 這種情況下資料其實可能已經寫入成功，只是回應沒送到，
+      // 所以「可安全重試」的操作才自動重試，其餘直接回報、不重試
+      if (idempotent && attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, 500 * attempt));
+        continue;
+      }
+      throw new Error(idempotent
+        ? "網路連線不穩定，請稍後再試（資料可能已經存成功，建議先重新整理確認）"
+        : "網路連線不穩定，請重新整理確認資料是否已新增，避免重複送出");
+    }
+    if (data.error) throw new Error(data.error); // 後端邏輯回傳的錯誤，屬於明確錯誤，不重試
+    return data;
+  }
 }
 
 const FX_API = "https://api.exchangerate-api.com/v4/latest/TWD";
