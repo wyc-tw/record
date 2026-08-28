@@ -2220,46 +2220,64 @@ export default function AssetTracker() {
             <p style={{margin:"0 0 20px",fontSize:12,color:T.muted}}>外幣依即時匯率自動換算</p>
             {(() => {
               const acctOpts = ACCT_OPTIONS[addForm.account] || {cats:ALL_CATS, currencies:SUPPORTED_CURRENCIES};
-              const fields = [
-                {label:"銀行", key:"bank", kind:"bank-select"},
-                {label:"帳戶類型", key:"account", kind:"account-select"},
-                {label:"資產類別", key:"category", kind:"select", options:acctOpts.cats},
-                {label:"名稱", key:"name", kind:"text", placeholder:"e.g. 台幣存款"},
-                {label:"幣別", key:"currency", kind:"select", options:acctOpts.currencies, labelMap:CURRENCY_LABELS},
-                {label:"數量（選填，股數）", key:"quantity", kind:"text", placeholder:"e.g. 100"},
-                {label:`金額（${CURRENCY_LABELS[addForm.currency]||addForm.currency}）`, key:"original_value", kind:"number", placeholder:"e.g. 50000"},
-              ];
-              return fields.map(({label,key,kind,options,placeholder,labelMap}) => (
-                <div key={key} style={{marginBottom:14}}>
-                  <label style={labelSt}>{label}</label>
-                  {kind==="bank-select" ? (
-                    <select value={addForm.bank} onChange={e=>{
-                      const b = e.target.value;
-                      setAddForm(f=>({...f, bank:b, owner:ownerForBank(b)}));
-                    }} style={inputSt}>
-                      {ALL_BANKS.map(o=><option key={o} value={o}>{o}</option>)}
-                    </select>
-                  ) : kind==="account-select" ? (
-                    <select value={addForm.account} onChange={e=>{
-                      const ac = e.target.value;
-                      const opts = ACCT_OPTIONS[ac] || {cats:ALL_CATS, currencies:SUPPORTED_CURRENCIES};
-                      setAddForm(f=>({...f, account:ac, category:opts.cats[0], currency:opts.currencies[0]}));
-                    }} style={inputSt}>
-                      {ALL_ACCOUNTS.map(o=><option key={o} value={o}>{o}</option>)}
-                    </select>
-                  ) : kind==="select" ? (
-                    <select value={addForm[key]} onChange={e=>setAddForm(f=>({...f,[key]:e.target.value}))} style={inputSt}>
-                      {options.map(o=><option key={o} value={o}>{(labelMap&&labelMap[o])||o}</option>)}
-                    </select>
-                  ) : (
-                    <input
-                      placeholder={placeholder}
-                      type="text"
-                      inputMode={kind==="number"?"decimal":undefined}
-                      value={addForm[key]} onChange={e=>setAddForm(f=>({...f,[key]:e.target.value}))} style={inputSt}/>
-                  )}
-                </div>
-              ));
+              return (
+                <>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+                    <div style={{minWidth:0}}>
+                      <label style={labelSt}>銀行</label>
+                      <select value={addForm.bank} onChange={e=>{
+                        const b = e.target.value;
+                        setAddForm(f=>({...f, bank:b, owner:ownerForBank(b)}));
+                      }} style={inputSt}>
+                        {ALL_BANKS.map(o=><option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <div style={{minWidth:0}}>
+                      <label style={labelSt}>帳戶類型</label>
+                      <select value={addForm.account} onChange={e=>{
+                        const ac = e.target.value;
+                        const opts = ACCT_OPTIONS[ac] || {cats:ALL_CATS, currencies:SUPPORTED_CURRENCIES};
+                        setAddForm(f=>({...f, account:ac, category:opts.cats[0], currency:opts.currencies[0]}));
+                      }} style={inputSt}>
+                        {ALL_ACCOUNTS.map(o=><option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+                    <div style={{minWidth:0}}>
+                      <label style={labelSt}>資產類別</label>
+                      <select value={addForm.category} onChange={e=>setAddForm(f=>({...f,category:e.target.value}))} style={inputSt}>
+                        {acctOpts.cats.map(o=><option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <div style={{minWidth:0}}>
+                      <label style={labelSt}>幣別</label>
+                      <select value={addForm.currency} onChange={e=>setAddForm(f=>({...f,currency:e.target.value}))} style={inputSt}>
+                        {acctOpts.currencies.map(o=><option key={o} value={o}>{CURRENCY_LABELS[o]||o}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{display:"grid",gridTemplateColumns:"1.3fr 1fr 1fr",gap:8,marginBottom:14}}>
+                    <div style={{minWidth:0}}>
+                      <label style={labelSt}>名稱</label>
+                      <input placeholder="e.g. 台幣存款" type="text"
+                        value={addForm.name} onChange={e=>setAddForm(f=>({...f,name:e.target.value}))} style={inputSt}/>
+                    </div>
+                    <div style={{minWidth:0}}>
+                      <label style={labelSt}>數量（選填）</label>
+                      <input placeholder="e.g. 100" type="text"
+                        value={addForm.quantity} onChange={e=>setAddForm(f=>({...f,quantity:e.target.value}))} style={inputSt}/>
+                    </div>
+                    <div style={{minWidth:0}}>
+                      <label style={labelSt}>{`金額（${CURRENCY_LABELS[addForm.currency]||addForm.currency}）`}</label>
+                      <input placeholder="e.g. 50000" type="text" inputMode="decimal"
+                        value={addForm.original_value} onChange={e=>setAddForm(f=>({...f,original_value:e.target.value}))} style={inputSt}/>
+                    </div>
+                  </div>
+                </>
+              );
             })()}
             {addForm.original_value&&parseFloat(addForm.original_value)>0&&(
               <div style={{background:T.bg,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:12}}>
