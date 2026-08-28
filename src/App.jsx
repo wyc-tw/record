@@ -375,24 +375,24 @@ function SnapshotModal({show, dateStr, totalValue, snapshotNote, setSnapshotNote
 function ConfirmModal({show, title, message, confirmLabel="確認", onConfirm, onCancel}) {
   if (!show) return null;
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:1000}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}>
       <div style={{
-        background:T.surface,borderRadius:"20px 20px 0 0",padding:"28px 24px 40px",
-        width:"100%",maxWidth:500,boxShadow:"0 -8px 40px rgba(0,0,0,0.5)"
+        background:T.surface,borderRadius:16,padding:"22px 20px",
+        width:"100%",maxWidth:320,boxShadow:"0 20px 60px rgba(0,0,0,0.5)",
+        textAlign:"center"
       }}>
-        <div style={{width:36,height:4,borderRadius:2,background:T.border,margin:"0 auto 20px"}}/>
-        <h3 style={{margin:"0 0 8px",fontSize:18,fontWeight:800}}>{title}</h3>
+        <h3 style={{margin:"0 0 8px",fontSize:16,fontWeight:800}}>{title}</h3>
         {message&&<p style={{margin:"0 0 20px",fontSize:13,color:T.muted,lineHeight:1.6}}>{message}</p>}
         <div style={{display:"flex",gap:10,flexWrap:"nowrap"}}>
           <button onClick={onConfirm} style={{
-            flex:"1 1 auto",minWidth:0,background:T.accent,color:"#fff",border:"none",
-            borderRadius:12,padding:"13px 0",fontSize:15,fontWeight:700,
+            flex:"1 1 0",minWidth:0,background:T.accent,color:"#fff",border:"none",
+            borderRadius:12,padding:"12px 0",fontSize:14,fontWeight:700,
             cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"
           }}>{confirmLabel}</button>
           <button onClick={onCancel} style={{
-            flex:"0 0 auto",background:T.card,color:T.muted,border:`1px solid ${T.border}`,
-            borderRadius:12,padding:"13px 20px",fontSize:15,whiteSpace:"nowrap",
-            cursor:"pointer",fontFamily:"inherit"
+            flex:"1 1 0",minWidth:0,background:T.card,color:T.muted,border:`1px solid ${T.border}`,
+            borderRadius:12,padding:"12px 0",fontSize:14,fontWeight:600,
+            cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"
           }}>取消</button>
         </div>
       </div>
