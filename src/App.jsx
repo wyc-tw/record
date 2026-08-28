@@ -410,40 +410,32 @@ const NAV_TABS = [
   {key:"todos",icon:"✅",label:"待辦"},
 ];
 
-function TagNav({currentPage, setPage}) {
-  const [open,setOpen] = useState(false);
+function BottomTabBar({currentPage, setPage}) {
   return (
-    <div>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-        <div style={{fontSize:20,fontWeight:800,flexShrink:0}}>WYC</div>
-        <button onClick={()=>setOpen(v=>!v)} style={{
-          flexShrink:0,width:36,height:36,borderRadius:"50%",
-          background:open?T.accent:T.surface,border:`1px solid ${open?T.accent:T.border}`,
-          color:open?"#fff":T.muted,cursor:"pointer",fontSize:15,
-          display:"flex",alignItems:"center",justifyContent:"center"
-        }}>{open?"✕":"☰"}</button>
-      </div>
-      {open&&(
-        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:12}}>
-          {NAV_TABS.map(tab=>{
-            const active = tab.group ? tab.group.includes(currentPage) : currentPage===tab.key;
-            const onClick = tab.group ? ()=>{setPage("main");setOpen(false);} : ()=>{ if(!active) setPage(tab.key); setOpen(false); };
-            return (
-              <button key={tab.key}
-                onClick={onClick}
-                style={{
-                  flexShrink:0,
-                  background: active?T.accent:T.surface,
-                  border: active?"none":`1px solid ${T.border}`,
-                  borderRadius:20,padding:"8px 14px",cursor:"pointer",fontSize:12,fontFamily:"inherit",
-                  color: active?"#fff":T.muted,fontWeight: active?700:500,
-                  display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap"
-                }}
-              ><span style={{fontSize:14}}>{tab.icon}</span>{tab.label}</button>
-            );
-          })}
-        </div>
-      )}
+    <div style={{
+      position:"fixed",left:0,right:0,bottom:0,zIndex:200,
+      maxWidth:880,margin:"0 auto",
+      background:T.surface,borderTop:`1px solid ${T.border}`,
+      display:"flex",justifyContent:"space-around",
+      paddingBottom:"env(safe-area-inset-bottom)",
+    }}>
+      {NAV_TABS.map(tab=>{
+        const active = tab.group ? tab.group.includes(currentPage) : currentPage===tab.key;
+        const onClick = tab.group ? ()=>setPage("main") : ()=>{ if(!active) setPage(tab.key); };
+        return (
+          <button key={tab.key}
+            onClick={onClick}
+            style={{
+              flex:1,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",
+              display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+              gap:2,padding:"8px 0 6px",color:active?T.accent:T.muted,
+            }}
+          >
+            <span style={{fontSize:20,lineHeight:1}}>{tab.icon}</span>
+            <span style={{fontSize:10,fontWeight:active?700:500}}>{tab.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1067,7 +1059,8 @@ export default function AssetTracker() {
   const pageStyle = {
     minHeight:"100vh",background:T.bg,
     fontFamily:"'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif",
-    color:T.text, padding:"0 0 80px",
+    color:T.text,
+    paddingTop:"calc(16px + env(safe-area-inset-top))", paddingBottom:100,
     maxWidth:880, margin:"0 auto", // 桌面版限制內容寬度並置中，避免版面被拉得太寬；手機螢幕本來就窄，不受影響
   };
 
@@ -1075,15 +1068,7 @@ export default function AssetTracker() {
   if (page==="history") return (
     <div style={pageStyle}>
       {toast&&<Toast toast={toast}/>}
-      {/* Header */}
-      <div style={{
-        background:`linear-gradient(160deg, #1A1D27 0%, #12141E 100%)`,
-        padding:"24px 20px 20px",borderBottom:`1px solid ${T.border}`,
-      }}>
-        <TagNav currentPage="history" setPage={setPage} />
-      </div>
-
-
+      <BottomTabBar currentPage="history" setPage={setPage} />
 
       <div style={{padding:"20px 20px 40px"}}>
         {snapshots.length===0?(
@@ -1190,12 +1175,7 @@ export default function AssetTracker() {
   if (page==="breakdown") return (
     <div style={pageStyle}>
       {toast&&<Toast toast={toast}/>}
-      <div style={{
-        background:`linear-gradient(160deg, #1A1D27 0%, #12141E 100%)`,
-        padding:"24px 20px 20px",borderBottom:`1px solid ${T.border}`,
-      }}>
-        <TagNav currentPage="breakdown" setPage={setPage} />
-      </div>
+      <BottomTabBar currentPage="breakdown" setPage={setPage} />
 
       <div style={{padding:"20px 16px 40px"}}>
         {unknownAccounts.length>0&&(
@@ -1309,12 +1289,7 @@ export default function AssetTracker() {
     return (
       <div style={pageStyle}>
         {toast&&<Toast toast={toast}/>}
-        <div style={{
-          background:`linear-gradient(160deg, #1A1D27 0%, #12141E 100%)`,
-          padding:"24px 20px 20px",borderBottom:`1px solid ${T.border}`,
-        }}>
-          <TagNav currentPage="bills" setPage={setPage} />
-        </div>
+        <BottomTabBar currentPage="bills" setPage={setPage} />
 
         <div style={{padding:"20px 16px 40px"}}>
           {/* 月份切換：左右箭頭一格一格翻，或直接點月份文字跳到任何月份 */}
@@ -1580,12 +1555,7 @@ export default function AssetTracker() {
     return (
       <div style={pageStyle}>
         {toast&&<Toast toast={toast}/>}
-        <div style={{
-          background:`linear-gradient(160deg, #1A1D27 0%, #12141E 100%)`,
-          padding:"24px 20px 20px",borderBottom:`1px solid ${T.border}`,
-        }}>
-          <TagNav currentPage="expenses" setPage={setPage} />
-        </div>
+        <BottomTabBar currentPage="expenses" setPage={setPage} />
 
         <div style={{padding:"20px 16px 40px"}}>
           {/* 月份切換 */}
@@ -1819,12 +1789,7 @@ export default function AssetTracker() {
     return (
       <div style={pageStyle}>
         {toast&&<Toast toast={toast}/>}
-        <div style={{
-          background:`linear-gradient(160deg, #1A1D27 0%, #12141E 100%)`,
-          padding:"24px 20px 20px",borderBottom:`1px solid ${T.border}`,
-        }}>
-          <TagNav currentPage="todos" setPage={setPage} />
-        </div>
+        <BottomTabBar currentPage="todos" setPage={setPage} />
 
         <div style={{padding:"20px 16px 40px"}}>
           <div style={{background:T.card,borderRadius:12,padding:"10px 14px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1908,7 +1873,7 @@ export default function AssetTracker() {
 
         {/* 浮動新增按鈕 */}
         <button onClick={()=>setShowAddTodo(true)} style={{
-          position:"fixed",bottom:28,right:24,
+          position:"fixed",bottom:"calc(76px + env(safe-area-inset-bottom))",right:24,
           width:56,height:56,borderRadius:"50%",
           background:`linear-gradient(135deg,${T.accent},#5B8CF5)`,
           border:"none",cursor:"pointer",
@@ -1966,15 +1931,7 @@ export default function AssetTracker() {
   return (
     <div style={pageStyle}>
       {toast&&<Toast toast={toast}/>}
-
-      {/* Hero header */}
-      <div style={{
-        background:`linear-gradient(160deg, #1A1D27 0%, #12141E 100%)`,
-        padding:"24px 20px 20px",
-        borderBottom:`1px solid ${T.border}`,
-      }}>
-        <TagNav currentPage="main" setPage={setPage} />
-      </div>
+      <BottomTabBar currentPage="main" setPage={setPage} />
 
       {/* Owner filter */}
       <div style={{padding:"16px 20px 0",display:"flex",gap:6}}>
