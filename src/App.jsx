@@ -1474,8 +1474,8 @@ export default function AssetTracker() {
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:14,fontWeight:700,color:(b.paid&&!b.auto_debit)?T.muted:T.text,textDecoration:(b.paid&&!b.auto_debit)?"line-through":"none"}}>{b.name}</div>
                       <div style={{fontSize:11,color:T.muted}}>
-                        {b.due_day&&`每月${b.due_day}日`}
-                        {b.due_day&&b.paid&&b.paid_date&&"・"}
+                        {!!b.due_day&&`每月${b.due_day}日`}
+                        {!!b.due_day&&b.paid&&b.paid_date&&"・"}
                         {!b.auto_debit&&b.paid&&b.paid_date&&`已繳・${b.paid_date}`}
                         {b.note&&`・${b.note}`}
                       </div>
@@ -1763,7 +1763,7 @@ export default function AssetTracker() {
                             padding:"10px 12px",display:"flex",alignItems:"center",gap:10
                           }}>
                             <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontSize:13,fontWeight:700,color:T.text}}>{e.type==="income"?"⬆️":"⬇️"} {expenseCatIcon(e.category)} {e.category}</div>
+                              <div style={{fontSize:13,fontWeight:700,color:T.text}}>{expenseCatIcon(e.category)} {e.category}</div>
                               <div style={{fontSize:11,color:T.muted}}>
                                 {e.payment_method}{e.note?`・${e.note}`:""}
                               </div>
