@@ -406,9 +406,9 @@ function ConfirmModal({show, title, message, confirmLabel="確認", onConfirm, o
 const NAV_TABS = [
   {key:"assetOrg",icon:"🗂️",label:"資產",group:["main","history","breakdown"]},
   {key:"bills",icon:"🧾",label:"帳單"},
+  {key:"notes",icon:"✏️",label:"筆記"},
   {key:"expenses",icon:"📒",label:"記帳"},
   {key:"todos",icon:"✅",label:"待辦"},
-  {key:"notes",icon:"✏️",label:"筆記"},
 ];
 
 function BottomTabBar({currentPage, setPage}) {
@@ -519,7 +519,7 @@ export default function AssetTracker() {
   const [showTopicManager,setShowTopicManager] = useState(false);
   const [newTopicName,setNewTopicName]   = useState("");
   const [showAddMessage,setShowAddMessage] = useState(false);
-  const [newMessageForm,setNewMessageForm] = useState({title:"",content:""});
+  const [newMessageForm,setNewMessageForm] = useState({content:""});
   const [editingMessageId,setEditingMessageId] = useState(null);
   const [editMessageForm,setEditMessageForm]   = useState(null);
 
@@ -1098,28 +1098,26 @@ export default function AssetTracker() {
   };
 
   const addReplyMessage = async () => {
-    const title = newMessageForm.title.trim();
     const content = newMessageForm.content.trim();
     if (!selectedTopicId) { showToast("請先選擇主題","error"); return; }
-    if (!title || !content) { showToast("請填標題跟內容","error"); return; }
+    if (!content) { showToast("請填寫內容","error"); return; }
     try {
       const maxSort = replyMessages.filter(m=>m.topic_id===selectedTopicId).reduce((m,x)=>Math.max(m,x.sort_order||0),0);
-      const result = await apiPost({action:"addReplyMessage", payload:{topic_id:selectedTopicId, title, content, sort_order:maxSort+1}});
+      const result = await apiPost({action:"addReplyMessage", payload:{topic_id:selectedTopicId, content, sort_order:maxSort+1}});
       pendingAddIdsRef.current.add(result.id);
       setReplyMessages(p=>[...p,result]);
-      setNewMessageForm({title:"",content:""});
+      setNewMessageForm({content:""});
       setShowAddMessage(false);
       showToast("已新增訊息");
     } catch(e) { showToast("新增失敗："+e.message,"error"); }
   };
 
-  const startEditMessage = (m) => { setEditingMessageId(m.id); setEditMessageForm({title:m.title||"",content:m.content||""}); };
+  const startEditMessage = (m) => { setEditingMessageId(m.id); setEditMessageForm({content:m.content||""}); };
 
   const saveEditMessage = async (id) => {
-    const title = editMessageForm.title.trim();
     const content = editMessageForm.content.trim();
-    if (!title || !content) { showToast("請填標題跟內容","error"); return; }
-    const payload = {title, content};
+    if (!content) { showToast("請填寫內容","error"); return; }
+    const payload = {content};
     setReplyMessages(p=>p.map(m=>m.id===id?{...m,...payload}:m));
     setEditingMessageId(null); setEditMessageForm(null);
     try {
@@ -2075,10 +2073,6 @@ export default function AssetTracker() {
                   background:T.surface,borderRadius:12,border:`1px solid ${T.accent}40`,
                   padding:12,display:"flex",flexDirection:"column",gap:8
                 }}>
-                  <input
-                    value={editMessageForm.title} onChange={e=>setEditMessageForm(f=>({...f,title:e.target.value}))}
-                    placeholder="標題" style={inputSt}
-                  />
                   <textarea
                     value={editMessageForm.content} onChange={e=>setEditMessageForm(f=>({...f,content:e.target.value}))}
                     placeholder="訊息內容" rows={4} style={{...inputSt,resize:"vertical",fontFamily:"inherit"}}
@@ -2099,22 +2093,20 @@ export default function AssetTracker() {
                 <div key={m.id} style={{background:T.surface,borderRadius:12,border:`1px solid ${T.border}`,padding:"12px 14px"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div onClick={()=>setExpandedMsgId(expanded?null:m.id)} style={{
-                      flex:1,minWidth:0,cursor:"pointer",fontSize:14,fontWeight:700,color:T.text,
-                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:expanded?"normal":"nowrap"
-                    }}>{expanded?"▾":"▸"} {m.title}</div>
+                      flex:1,minWidth:0,cursor:"pointer",fontSize:13,color:T.text,
+                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:expanded?"pre-wrap":"nowrap",
+                      lineHeight:1.6
+                    }}>{expanded?m.content:`▸ ${m.content}`}</div>
                     <button onClick={()=>copyMessage(m.content)} style={{
                       flexShrink:0,background:`${T.accent}22`,color:T.accent,border:`1px solid ${T.accent}`,
                       borderRadius:8,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"
                     }}>複製</button>
                   </div>
                   {expanded&&(
-                    <>
-                      <div style={{marginTop:8,fontSize:13,color:T.muted,whiteSpace:"pre-wrap",lineHeight:1.6}}>{m.content}</div>
-                      <div style={{display:"flex",gap:12,marginTop:10}}>
-                        <button onClick={()=>startEditMessage(m)} style={{background:"none",border:"none",color:T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:0}}>編輯</button>
-                        <button onClick={()=>deleteReplyMessage(m.id)} style={{background:"none",border:"none",color:T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:0}}>刪除</button>
-                      </div>
-                    </>
+                    <div style={{display:"flex",gap:12,marginTop:10}}>
+                      <button onClick={()=>startEditMessage(m)} style={{background:"none",border:"none",color:T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:0}}>編輯</button>
+                      <button onClick={()=>deleteReplyMessage(m.id)} style={{background:"none",border:"none",color:T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:0}}>刪除</button>
+                    </div>
                   )}
                 </div>
               );
@@ -2133,13 +2125,6 @@ export default function AssetTracker() {
               }}>
                 <div style={{width:36,height:4,borderRadius:2,background:T.border,margin:"0 auto 20px"}}/>
                 <h3 style={{margin:"0 0 16px",fontSize:18,fontWeight:800}}>新增訊息</h3>
-                <div style={{marginBottom:12}}>
-                  <div style={labelSt}>標題</div>
-                  <input
-                    value={newMessageForm.title} onChange={e=>setNewMessageForm(f=>({...f,title:e.target.value}))}
-                    placeholder="例如：出貨快、品質好" style={inputSt}
-                  />
-                </div>
                 <div style={{marginBottom:16}}>
                   <div style={labelSt}>內容</div>
                   <textarea
@@ -2153,7 +2138,7 @@ export default function AssetTracker() {
                     borderRadius:12,padding:"13px 0",fontSize:15,fontWeight:700,
                     cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"
                   }}>新增</button>
-                  <button onClick={()=>{setShowAddMessage(false);setNewMessageForm({title:"",content:""});}} style={{
+                  <button onClick={()=>{setShowAddMessage(false);setNewMessageForm({content:""});}} style={{
                     flex:"0 0 auto",background:T.card,color:T.muted,border:`1px solid ${T.border}`,
                     borderRadius:12,padding:"13px 20px",fontSize:15,whiteSpace:"nowrap",
                     cursor:"pointer",fontFamily:"inherit"
