@@ -408,6 +408,7 @@ const NAV_TABS = [
   {key:"bills",icon:"🧾",label:"帳單"},
   {key:"expenses",icon:"📒",label:"記帳"},
   {key:"todos",icon:"✅",label:"待辦"},
+  {key:"notes",icon:"✏️",label:"筆記"},
 ];
 
 function BottomTabBar({currentPage, setPage}) {
@@ -510,6 +511,25 @@ export default function AssetTracker() {
   const [confirmTodoId,setConfirmTodoId] = useState(null); // 待確認「標記完成」的待辦 id
   const [showAddTodo,setShowAddTodo] = useState(false); // 新增待辦彈窗（點右下角浮動按鈕才會出現）
 
+  // 筆記頁（罐頭訊息）
+  const [replyTopics,setReplyTopics]     = useState([]);
+  const [replyMessages,setReplyMessages] = useState([]);
+  const [selectedTopicId,setSelectedTopicId] = useState(null);
+  const [expandedMsgId,setExpandedMsgId] = useState(null);
+  const [showTopicManager,setShowTopicManager] = useState(false);
+  const [newTopicName,setNewTopicName]   = useState("");
+  const [showAddMessage,setShowAddMessage] = useState(false);
+  const [newMessageForm,setNewMessageForm] = useState({title:"",content:""});
+  const [editingMessageId,setEditingMessageId] = useState(null);
+  const [editMessageForm,setEditMessageForm]   = useState(null);
+
+  // 主題資料載入後，如果還沒選任何主題，自動選第一個，避免打開筆記頁畫面空空的
+  useEffect(()=>{
+    if (!selectedTopicId && replyTopics.length>0) {
+      setSelectedTopicId(replyTopics.slice().sort((a,b)=>(a.sort_order??0)-(b.sort_order??0))[0].id);
+    }
+  },[replyTopics]);
+
   // 追蹤「剛新增、還在等首次背景讀取回來確認」的項目 id。
   // 只有這些 id 在首次背景讀取合併時會被保護，其餘一律以伺服器最新資料為準，
   // 這樣被刪除的東西才不會因為殘留在本機快取裡，重新整理後又跑回來
@@ -540,6 +560,8 @@ export default function AssetTracker() {
         setBills(cached.bills||[]);
         setExpenses(cached.expenses||[]);
         setTodos(cached.todos||[]);
+        setReplyTopics(cached.replyTopics||[]);
+        setReplyMessages(cached.replyMessages||[]);
         setFxRates(cached.fxRates||{});
         setFxUpdated(cached.fxUpdated?new Date(cached.fxUpdated):null);
         setLoading(false); // 有快取就先讓畫面出現，背景再偷偷更新
@@ -555,15 +577,17 @@ export default function AssetTracker() {
         fetch(FX_API).then(r=>r.json()),
       ]);
 
-      let newAssets,newSnapshots,newBillTemplates,newBills,newExpenses,newTodos;
+      let newAssets,newSnapshots,newBillTemplates,newBills,newExpenses,newTodos,newReplyTopics,newReplyMessages;
       if (listResult.status==="fulfilled") {
-        const {assets:aData, snapshots:sData, bill_templates:btData, bills:bData, expenses:eData, todos:tData} = listResult.value;
+        const {assets:aData, snapshots:sData, bill_templates:btData, bills:bData, expenses:eData, todos:tData, reply_topics:rtData, reply_messages:rmData} = listResult.value;
         const freshAssets = (aData||[]).slice().sort((a,b)=>(a.sort_order??0)-(b.sort_order??0));
         const freshSnapshots = (sData||[]).slice().sort((a,b)=>new Date(a.taken_at)-new Date(b.taken_at));
         const freshBillTemplates = (btData||[]).slice().sort((a,b)=>(a.sort_order??0)-(b.sort_order??0));
         const freshBills = bData||[];
         const freshExpenses = eData||[];
         const freshTodos = tData||[];
+        const freshReplyTopics = (rtData||[]).slice().sort((a,b)=>(a.sort_order??0)-(b.sort_order??0));
+        const freshReplyMessages = rmData||[];
 
         // 這次背景抓取的資料，可能比使用者剛剛手動新增的項目還舊（伺服器讀取發生在新增「之前」）
         // 但只保護「真的剛新增、還沒確認同步」的那幾筆（pendingAddIdsRef 記錄的 id），
@@ -581,6 +605,8 @@ export default function AssetTracker() {
         setBills(prev=>{ newBills = mergeKeepLocal(freshBills, prev); return newBills; });
         setExpenses(prev=>{ newExpenses = mergeKeepLocal(freshExpenses, prev); return newExpenses; });
         setTodos(prev=>{ newTodos = mergeKeepLocal(freshTodos, prev); return newTodos; });
+        setReplyTopics(prev=>{ newReplyTopics = mergeKeepLocal(freshReplyTopics, prev).slice().sort((a,b)=>(a.sort_order??0)-(b.sort_order??0)); return newReplyTopics; });
+        setReplyMessages(prev=>{ newReplyMessages = mergeKeepLocal(freshReplyMessages, prev); return newReplyMessages; });
         pendingAddIdsRef.current.clear(); // 這次背景讀取已經處理完，保護窗口關閉，之後都直接信任伺服器資料
       } else if (!hasCache) {
         showToast("資產載入失敗："+listResult.reason.message,"error");
@@ -606,6 +632,8 @@ export default function AssetTracker() {
           bills: newBills ?? prev.bills ?? [],
           expenses: newExpenses ?? prev.expenses ?? [],
           todos: newTodos ?? prev.todos ?? [],
+          replyTopics: newReplyTopics ?? prev.replyTopics ?? [],
+          replyMessages: newReplyMessages ?? prev.replyMessages ?? [],
           fxRates: newFxRates ?? prev.fxRates ?? {},
           fxUpdated: newFxUpdated ? newFxUpdated.toISOString() : (prev.fxUpdated ?? null),
         }));
@@ -1042,6 +1070,79 @@ export default function AssetTracker() {
       setTodos(p=>p.filter(t=>t.id!==id));
       showToast("已刪除");
     } catch(e) { showToast("刪除失敗："+e.message,"error"); }
+  };
+
+  // ── 筆記頁（罐頭訊息）─────────────────────────────────────────
+  const addReplyTopic = async () => {
+    const name = newTopicName.trim();
+    if (!name) { showToast("請輸入主題名稱","error"); return; }
+    try {
+      const maxSort = replyTopics.reduce((m,t)=>Math.max(m,t.sort_order||0),0);
+      const result = await apiPost({action:"addReplyTopic", payload:{name, sort_order:maxSort+1}});
+      pendingAddIdsRef.current.add(result.id);
+      setReplyTopics(p=>[...p,result]);
+      setNewTopicName("");
+      setSelectedTopicId(result.id);
+      showToast("已新增主題");
+    } catch(e) { showToast("新增失敗："+e.message,"error"); }
+  };
+
+  const deleteReplyTopic = async (id) => {
+    try {
+      await apiPost({action:"deleteReplyTopic", id});
+      setReplyTopics(p=>p.filter(t=>t.id!==id));
+      setReplyMessages(p=>p.filter(m=>m.topic_id!==id));
+      setSelectedTopicId(prev=>prev===id?null:prev);
+      showToast("已刪除主題");
+    } catch(e) { showToast("刪除失敗："+e.message,"error"); }
+  };
+
+  const addReplyMessage = async () => {
+    const title = newMessageForm.title.trim();
+    const content = newMessageForm.content.trim();
+    if (!selectedTopicId) { showToast("請先選擇主題","error"); return; }
+    if (!title || !content) { showToast("請填標題跟內容","error"); return; }
+    try {
+      const maxSort = replyMessages.filter(m=>m.topic_id===selectedTopicId).reduce((m,x)=>Math.max(m,x.sort_order||0),0);
+      const result = await apiPost({action:"addReplyMessage", payload:{topic_id:selectedTopicId, title, content, sort_order:maxSort+1}});
+      pendingAddIdsRef.current.add(result.id);
+      setReplyMessages(p=>[...p,result]);
+      setNewMessageForm({title:"",content:""});
+      setShowAddMessage(false);
+      showToast("已新增訊息");
+    } catch(e) { showToast("新增失敗："+e.message,"error"); }
+  };
+
+  const startEditMessage = (m) => { setEditingMessageId(m.id); setEditMessageForm({title:m.title||"",content:m.content||""}); };
+
+  const saveEditMessage = async (id) => {
+    const title = editMessageForm.title.trim();
+    const content = editMessageForm.content.trim();
+    if (!title || !content) { showToast("請填標題跟內容","error"); return; }
+    const payload = {title, content};
+    setReplyMessages(p=>p.map(m=>m.id===id?{...m,...payload}:m));
+    setEditingMessageId(null); setEditMessageForm(null);
+    try {
+      await apiPost({action:"updateReplyMessage", id, payload});
+      showToast("已更新");
+    } catch(e) { showToast("更新失敗："+e.message,"error"); }
+  };
+
+  const deleteReplyMessage = async (id) => {
+    try {
+      await apiPost({action:"deleteReplyMessage", id});
+      setReplyMessages(p=>p.filter(m=>m.id!==id));
+      showToast("已刪除");
+    } catch(e) { showToast("刪除失敗："+e.message,"error"); }
+  };
+
+  const copyMessage = async (content) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      showToast("已複製");
+    } catch(e) {
+      showToast("複製失敗，請手動選取文字","error");
+    }
   };
 
   if (!configured) return (
@@ -1923,6 +2024,186 @@ export default function AssetTracker() {
             </div>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // ── NOTES (筆記／罐頭訊息) ───────────────────────────────────────────────
+  if (page==="notes") {
+    const sortedTopics = replyTopics.slice().sort((a,b)=>(a.sort_order??0)-(b.sort_order??0));
+    const topicMessages = replyMessages
+      .filter(m=>m.topic_id===selectedTopicId)
+      .slice().sort((a,b)=>(a.sort_order??0)-(b.sort_order??0));
+
+    return (
+      <div style={pageStyle}>
+        {toast&&<Toast toast={toast}/>}
+        <BottomTabBar currentPage="notes" setPage={setPage} />
+
+        <div style={{padding:"20px 16px 40px"}}>
+          {/* 主題橫排 */}
+          <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16}}>
+            {sortedTopics.map(t=>{
+              const active = selectedTopicId===t.id;
+              return (
+                <button key={t.id} onClick={()=>setSelectedTopicId(t.id)} style={{
+                  background:active?T.accent:T.surface,
+                  border:active?"none":`1px solid ${T.border}`,
+                  color:active?"#fff":T.text,
+                  borderRadius:20,padding:"8px 14px",cursor:"pointer",fontSize:13,fontFamily:"inherit",
+                  fontWeight:active?700:500,whiteSpace:"nowrap"
+                }}>{t.name}</button>
+              );
+            })}
+            {sortedTopics.length===0&&<div style={{fontSize:13,color:T.muted}}>還沒有主題，先在下面「管理主題」新增一個</div>}
+          </div>
+
+          {/* ＋新增訊息 */}
+          {selectedTopicId&&(
+            <button onClick={()=>setShowAddMessage(true)} style={{
+              width:"100%",background:T.surface,border:`1px dashed ${T.border}`,color:T.muted,
+              borderRadius:12,padding:"12px 0",marginBottom:16,cursor:"pointer",fontSize:13,fontFamily:"inherit"
+            }}>＋ 新增這個主題的訊息</button>
+          )}
+
+          {/* 訊息清單 */}
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {topicMessages.map(m=>{
+              const expanded = expandedMsgId===m.id;
+              if (editingMessageId===m.id) return (
+                <div key={m.id} style={{
+                  background:T.surface,borderRadius:12,border:`1px solid ${T.accent}40`,
+                  padding:12,display:"flex",flexDirection:"column",gap:8
+                }}>
+                  <input
+                    value={editMessageForm.title} onChange={e=>setEditMessageForm(f=>({...f,title:e.target.value}))}
+                    placeholder="標題" style={inputSt}
+                  />
+                  <textarea
+                    value={editMessageForm.content} onChange={e=>setEditMessageForm(f=>({...f,content:e.target.value}))}
+                    placeholder="訊息內容" rows={4} style={{...inputSt,resize:"vertical",fontFamily:"inherit"}}
+                  />
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>saveEditMessage(m.id)} style={{
+                      flex:1,background:T.accent,color:"#fff",border:"none",borderRadius:10,
+                      padding:"9px 0",fontWeight:700,cursor:"pointer",fontFamily:"inherit"
+                    }}>儲存</button>
+                    <button onClick={()=>{setEditingMessageId(null);setEditMessageForm(null);}} style={{
+                      flex:"0 0 auto",background:T.card,color:T.muted,border:`1px solid ${T.border}`,
+                      borderRadius:10,padding:"9px 16px",cursor:"pointer",fontFamily:"inherit"
+                    }}>取消</button>
+                  </div>
+                </div>
+              );
+              return (
+                <div key={m.id} style={{background:T.surface,borderRadius:12,border:`1px solid ${T.border}`,padding:"12px 14px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div onClick={()=>setExpandedMsgId(expanded?null:m.id)} style={{
+                      flex:1,minWidth:0,cursor:"pointer",fontSize:14,fontWeight:700,color:T.text,
+                      overflow:"hidden",textOverflow:"ellipsis",whiteSpace:expanded?"normal":"nowrap"
+                    }}>{expanded?"▾":"▸"} {m.title}</div>
+                    <button onClick={()=>copyMessage(m.content)} style={{
+                      flexShrink:0,background:`${T.accent}22`,color:T.accent,border:`1px solid ${T.accent}`,
+                      borderRadius:8,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"
+                    }}>複製</button>
+                  </div>
+                  {expanded&&(
+                    <>
+                      <div style={{marginTop:8,fontSize:13,color:T.muted,whiteSpace:"pre-wrap",lineHeight:1.6}}>{m.content}</div>
+                      <div style={{display:"flex",gap:12,marginTop:10}}>
+                        <button onClick={()=>startEditMessage(m)} style={{background:"none",border:"none",color:T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:0}}>編輯</button>
+                        <button onClick={()=>deleteReplyMessage(m.id)} style={{background:"none",border:"none",color:T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",padding:0}}>刪除</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+            {selectedTopicId&&topicMessages.length===0&&(
+              <div style={{textAlign:"center",color:T.muted,padding:"20px 0",fontSize:13}}>這個主題還沒有訊息</div>
+            )}
+          </div>
+
+          {/* 新增訊息彈窗 */}
+          {showAddMessage&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:1000}}>
+              <div style={{
+                background:T.surface,borderRadius:"20px 20px 0 0",padding:"28px 24px 40px",
+                width:"100%",maxWidth:500,boxShadow:"0 -8px 40px rgba(0,0,0,0.5)"
+              }}>
+                <div style={{width:36,height:4,borderRadius:2,background:T.border,margin:"0 auto 20px"}}/>
+                <h3 style={{margin:"0 0 16px",fontSize:18,fontWeight:800}}>新增訊息</h3>
+                <div style={{marginBottom:12}}>
+                  <div style={labelSt}>標題</div>
+                  <input
+                    value={newMessageForm.title} onChange={e=>setNewMessageForm(f=>({...f,title:e.target.value}))}
+                    placeholder="例如：出貨快、品質好" style={inputSt}
+                  />
+                </div>
+                <div style={{marginBottom:16}}>
+                  <div style={labelSt}>內容</div>
+                  <textarea
+                    value={newMessageForm.content} onChange={e=>setNewMessageForm(f=>({...f,content:e.target.value}))}
+                    placeholder="完整的回覆內容" rows={5} style={{...inputSt,resize:"vertical",fontFamily:"inherit"}}
+                  />
+                </div>
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={addReplyMessage} style={{
+                    flex:"1 1 auto",minWidth:0,background:T.accent,color:"#fff",border:"none",
+                    borderRadius:12,padding:"13px 0",fontSize:15,fontWeight:700,
+                    cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"
+                  }}>新增</button>
+                  <button onClick={()=>{setShowAddMessage(false);setNewMessageForm({title:"",content:""});}} style={{
+                    flex:"0 0 auto",background:T.card,color:T.muted,border:`1px solid ${T.border}`,
+                    borderRadius:12,padding:"13px 20px",fontSize:15,whiteSpace:"nowrap",
+                    cursor:"pointer",fontFamily:"inherit"
+                  }}>取消</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 主題管理：新增後很少變動，收在最下面 */}
+          <div style={{borderTop:`1px solid ${T.border}`,marginTop:24,paddingTop:16}}>
+            <button onClick={()=>setShowTopicManager(v=>!v)} style={{
+              background:"none",border:"none",color:T.muted,fontSize:12,cursor:"pointer",
+              fontFamily:"inherit",padding:0,marginBottom:showTopicManager?12:0
+            }}>{showTopicManager?"▾":"▸"} 管理主題（{replyTopics.length}）</button>
+
+            {showTopicManager&&(
+              <div>
+                <div style={{display:"flex",gap:8,marginBottom:12}}>
+                  <input
+                    value={newTopicName} onChange={e=>setNewTopicName(e.target.value)}
+                    placeholder="例如：賣場留言回覆" style={{...inputSt,flex:1,minWidth:0}}
+                  />
+                  <button onClick={addReplyTopic} style={{
+                    flexShrink:0,background:T.accent,color:"#fff",border:"none",borderRadius:10,
+                    padding:"0 16px",cursor:"pointer",fontWeight:700,fontFamily:"inherit"
+                  }}>新增</button>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {sortedTopics.map(t=>(
+                    <div key={t.id} style={{
+                      display:"flex",alignItems:"center",justifyContent:"space-between",
+                      background:T.card,borderRadius:10,padding:"8px 12px",fontSize:13
+                    }}>
+                      <span>{t.name}</span>
+                      <button onClick={()=>{
+                        const count = replyMessages.filter(m=>m.topic_id===t.id).length;
+                        const msg = count>0
+                          ? `確定刪除主題「${t.name}」嗎？裡面的 ${count} 則訊息也會一起刪除，無法復原。`
+                          : `確定刪除主題「${t.name}」嗎？`;
+                        if (window.confirm(msg)) deleteReplyTopic(t.id);
+                      }} style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>刪除</button>
+                    </div>
+                  ))}
+                  {sortedTopics.length===0&&<div style={{fontSize:12,color:T.muted}}>還沒有主題，新增一個開始吧</div>}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
