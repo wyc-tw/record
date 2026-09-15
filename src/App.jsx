@@ -1462,12 +1462,23 @@ export default function AssetTracker() {
               </div>
             </div>
             <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBottom:10}}>
-              {!billForm.auto_debit&&(
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={labelSt}>繳費日（打勾為自動扣款）</div>
-                  <input type="date" value={billForm.paid_date} onChange={e=>setBillForm(f=>({...f,paid_date:e.target.value}))} style={{...inputSt,minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
-                </div>
-              )}
+              <div style={{flex:1,minWidth:0}}>
+                {billForm.auto_debit ? (
+                  <>
+                    <div style={labelSt}>繳費方式</div>
+                    <div style={{
+                      ...inputSt,display:"flex",alignItems:"center",gap:6,
+                      color:T.accent,fontWeight:600,
+                      background:`${T.accent}14`,border:`1px solid ${T.accent}40`
+                    }}>🔄 已設定自動扣款</div>
+                  </>
+                ) : (
+                  <>
+                    <div style={labelSt}>繳費日（打勾為自動扣款）</div>
+                    <input type="date" value={billForm.paid_date} onChange={e=>setBillForm(f=>({...f,paid_date:e.target.value}))} style={{...inputSt,minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
+                  </>
+                )}
+              </div>
               <div style={{flexShrink:0,paddingBottom:9}}>
                 <input type="checkbox" checked={billForm.auto_debit} onChange={e=>setBillForm(f=>({...f,auto_debit:e.target.checked}))} style={{width:18,height:18,cursor:"pointer",display:"block"}}/>
               </div>
@@ -1517,15 +1528,26 @@ export default function AssetTracker() {
                       </div>
                     </div>
                     <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        {editBillForm.auto_debit ? (
+                          <>
+                            <div style={labelSt}>繳費方式</div>
+                            <div style={{
+                              ...inputSt,display:"flex",alignItems:"center",gap:6,
+                              color:T.accent,fontWeight:600,
+                              background:`${T.accent}14`,border:`1px solid ${T.accent}40`
+                            }}>🔄 已設定自動扣款</div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={labelSt}>繳費日（選填）</div>
+                            <input type="date" value={editBillForm.paid_date} onChange={e=>setEditBillForm(f=>({...f,paid_date:e.target.value}))} style={{...inputSt,minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
+                          </>
+                        )}
+                      </div>
                       <div style={{flexShrink:0,paddingBottom:9}}>
                         <input type="checkbox" checked={editBillForm.auto_debit} onChange={e=>setEditBillForm(f=>({...f,auto_debit:e.target.checked}))} style={{width:18,height:18,cursor:"pointer",display:"block"}}/>
                       </div>
-                      {!editBillForm.auto_debit&&(
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={labelSt}>繳費日（選填）</div>
-                          <input type="date" value={editBillForm.paid_date} onChange={e=>setEditBillForm(f=>({...f,paid_date:e.target.value}))} style={{...inputSt,minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
-                        </div>
-                      )}
                       <div style={{width:76,flexShrink:0}}>
                         <div style={{...labelSt,opacity:0.6}}>到期日</div>
                         <input type="number" min="1" max="31" value={editBillForm.due_day} onChange={e=>setEditBillForm(f=>({...f,due_day:e.target.value}))} style={{...inputSt,fontSize:13}}/>
