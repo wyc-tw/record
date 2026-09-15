@@ -1467,15 +1467,15 @@ export default function AssetTracker() {
                   <>
                     <div style={labelSt}>繳費方式</div>
                     <div style={{
-                      ...inputSt,display:"flex",alignItems:"center",gap:6,
+                      ...inputSt,height:38,boxSizing:"border-box",display:"flex",alignItems:"center",gap:6,
                       color:T.accent,fontWeight:600,
                       background:`${T.accent}14`,border:`1px solid ${T.accent}40`
                     }}>🔄 已設定自動扣款</div>
                   </>
                 ) : (
                   <>
-                    <div style={labelSt}>繳費日（打勾為自動扣款）</div>
-                    <input type="date" value={billForm.paid_date} onChange={e=>setBillForm(f=>({...f,paid_date:e.target.value}))} style={{...inputSt,minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
+                    <div style={labelSt}>繳費日</div>
+                    <input type="date" value={billForm.paid_date} onChange={e=>setBillForm(f=>({...f,paid_date:e.target.value}))} style={{...inputSt,height:38,boxSizing:"border-box",minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
                   </>
                 )}
               </div>
@@ -1484,7 +1484,7 @@ export default function AssetTracker() {
               </div>
               <div style={{width:76,flexShrink:0}}>
                 <div style={{...labelSt,opacity:0.6}}>到期日</div>
-                <input type="number" min="1" max="31" value={billForm.due_day} onChange={e=>setBillForm(f=>({...f,due_day:e.target.value}))} style={{...inputSt,fontSize:13}}/>
+                <input type="number" min="1" max="31" value={billForm.due_day} onChange={e=>setBillForm(f=>({...f,due_day:e.target.value}))} style={{...inputSt,fontSize:13,height:38,boxSizing:"border-box"}}/>
               </div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
@@ -1533,15 +1533,15 @@ export default function AssetTracker() {
                           <>
                             <div style={labelSt}>繳費方式</div>
                             <div style={{
-                              ...inputSt,display:"flex",alignItems:"center",gap:6,
+                              ...inputSt,height:38,boxSizing:"border-box",display:"flex",alignItems:"center",gap:6,
                               color:T.accent,fontWeight:600,
                               background:`${T.accent}14`,border:`1px solid ${T.accent}40`
                             }}>🔄 已設定自動扣款</div>
                           </>
                         ) : (
                           <>
-                            <div style={labelSt}>繳費日（選填）</div>
-                            <input type="date" value={editBillForm.paid_date} onChange={e=>setEditBillForm(f=>({...f,paid_date:e.target.value}))} style={{...inputSt,minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
+                            <div style={labelSt}>繳費日</div>
+                            <input type="date" value={editBillForm.paid_date} onChange={e=>setEditBillForm(f=>({...f,paid_date:e.target.value}))} style={{...inputSt,height:38,boxSizing:"border-box",minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
                           </>
                         )}
                       </div>
@@ -1550,7 +1550,7 @@ export default function AssetTracker() {
                       </div>
                       <div style={{width:76,flexShrink:0}}>
                         <div style={{...labelSt,opacity:0.6}}>到期日</div>
-                        <input type="number" min="1" max="31" value={editBillForm.due_day} onChange={e=>setEditBillForm(f=>({...f,due_day:e.target.value}))} style={{...inputSt,fontSize:13}}/>
+                        <input type="number" min="1" max="31" value={editBillForm.due_day} onChange={e=>setEditBillForm(f=>({...f,due_day:e.target.value}))} style={{...inputSt,fontSize:13,height:38,boxSizing:"border-box"}}/>
                       </div>
                     </div>
                     <div>
