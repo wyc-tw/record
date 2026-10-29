@@ -467,7 +467,7 @@ export default function AssetTracker() {
   const [newTemplateName,setNewTemplateName] = useState("");
   const [newTemplateDueDay,setNewTemplateDueDay] = useState("");
   const [newTemplateAutoDebit,setNewTemplateAutoDebit] = useState(false);
-  const [billForm,setBillForm] = useState({template_id:"",name:"",amount:"",due_day:"",auto_debit:false,paid_date:new Date().toISOString().slice(0,10),note:"",month:billsMonth});
+  const [billForm,setBillForm] = useState({template_id:"",name:"",amount:"",due_day:"",auto_debit:false,waived:false,paid_date:new Date().toISOString().slice(0,10),note:"",month:billsMonth});
   const [expenses,setExpenses] = useState([]);
   const [expensesMonth,setExpensesMonth] = useState(()=>{
     const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
@@ -820,7 +820,7 @@ export default function AssetTracker() {
   };
   const billYear = billsMonth.split("-")[0];
   const annualTotal = useMemo(()=>
-    bills.filter(b=>b.month&&b.month.startsWith(billYear+"-")).reduce((s,b)=>s+(parseFloat(b.amount)||0),0)
+    bills.filter(b=>b.month&&b.month.startsWith(billYear+"-")).reduce((s,b)=>s+(b.waived?0:(parseFloat(b.amount)||0)),0)
   ,[bills,billYear]);
 
   // 切換「檢視」的月份時，新增帳單表單的月份預設值也跟著換，減少手動改的次數
@@ -838,23 +838,24 @@ export default function AssetTracker() {
       const result = await apiPost({action:"addBill", payload:{
         template_id: billForm.template_id||"",
         name, month: billForm.month||billsMonth, amount: amt,
-        paid: !!billForm.auto_debit || !!billForm.paid_date,
+        paid: !!billForm.auto_debit || !!billForm.waived || !!billForm.paid_date,
         due_day: billForm.due_day?parseInt(billForm.due_day,10):"",
-        paid_date: billForm.auto_debit? new Date().toISOString().slice(0,10) : (billForm.paid_date||""),
+        paid_date: billForm.waived? "" : (billForm.auto_debit? new Date().toISOString().slice(0,10) : (billForm.paid_date||"")),
         note: billForm.note||"",
         auto_debit: !!billForm.auto_debit,
+        waived: !!billForm.waived,
       }});
       pendingAddIdsRef.current.add(result.id);
       setBills(p=>[...p,result]);
       // 補歷史資料時常常會連續新增好幾筆同一個月，所以月份保留、其他欄位清空
-      setBillForm(f=>({template_id:"",name:"",amount:"",due_day:"",auto_debit:false,paid_date:new Date().toISOString().slice(0,10),note:"",month:f.month}));
+      setBillForm(f=>({template_id:"",name:"",amount:"",due_day:"",auto_debit:false,waived:false,paid_date:new Date().toISOString().slice(0,10),note:"",month:f.month}));
       showToast(`已新增到 ${billForm.month||billsMonth}`);
     } catch(e) { showToast("新增失敗："+e.message,"error"); }
     setBillSaving(false);
   };
 
   const pickBillTemplate = (t) => {
-    setBillForm(f=>({...f, template_id:t.id, name:t.name, due_day:t.due_day||"", auto_debit:!!t.auto_debit}));
+    setBillForm(f=>({...f, template_id:t.id, name:t.name, due_day:t.due_day||"", auto_debit:!!t.auto_debit, waived:false}));
   };
 
   const updateBillField = async (id, payload) => {
@@ -866,7 +867,7 @@ export default function AssetTracker() {
 
   const startEditBill = (b) => {
     setEditingBillId(b.id);
-    setEditBillForm({name:b.name||"", amount:b.amount||"", due_day:b.due_day||"", auto_debit:!!b.auto_debit, paid_date:b.paid_date||"", note:b.note||""});
+    setEditBillForm({name:b.name||"", amount:b.amount||"", due_day:b.due_day||"", auto_debit:!!b.auto_debit, waived:!!b.waived, paid_date:b.paid_date||"", note:b.note||""});
   };
   const saveEditBill = async (id) => {
     const payload = {
@@ -874,8 +875,9 @@ export default function AssetTracker() {
       amount: parseFloat(editBillForm.amount)||0,
       due_day: editBillForm.due_day?parseInt(editBillForm.due_day,10):"",
       auto_debit: !!editBillForm.auto_debit,
-      paid_date: editBillForm.auto_debit? (editBillForm.paid_date||new Date().toISOString().slice(0,10)) : (editBillForm.paid_date||""),
-      paid: !!editBillForm.auto_debit || !!editBillForm.paid_date,
+      waived: !!editBillForm.waived,
+      paid_date: editBillForm.waived? "" : (editBillForm.auto_debit? (editBillForm.paid_date||new Date().toISOString().slice(0,10)) : (editBillForm.paid_date||"")),
+      paid: !!editBillForm.auto_debit || !!editBillForm.waived || !!editBillForm.paid_date,
       note: editBillForm.note||"",
     };
     setBills(p=>p.map(b=>b.id===id?{...b,...payload}:b));
@@ -1383,8 +1385,8 @@ export default function AssetTracker() {
 
   // ── BILLS (帳單) ─────────────────────────────────────────────────────────
   if (page==="bills") {
-    const total = monthBills.reduce((s,b)=>s+(parseFloat(b.amount)||0),0);
-    const paidCount = monthBills.filter(b=>b.paid).length;
+    const total = monthBills.reduce((s,b)=>s+(b.waived?0:(parseFloat(b.amount)||0)),0);
+    const paidCount = monthBills.filter(b=>b.paid||b.waived).length;
     return (
       <div style={pageStyle}>
         {toast&&<Toast toast={toast}/>}
@@ -1463,7 +1465,16 @@ export default function AssetTracker() {
             </div>
             <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBottom:10}}>
               <div style={{flex:1,minWidth:0}}>
-                {billForm.auto_debit ? (
+                {billForm.waived ? (
+                  <>
+                    <div style={labelSt}>繳費方式</div>
+                    <div style={{
+                      ...inputSt,height:38,boxSizing:"border-box",display:"flex",alignItems:"center",gap:6,
+                      color:"#F59E0B",fontWeight:600,
+                      background:"#F59E0B14",border:"1px solid #F59E0B40"
+                    }}>⛔ 本月免繳</div>
+                  </>
+                ) : billForm.auto_debit ? (
                   <>
                     <div style={labelSt}>繳費方式</div>
                     <div style={{
@@ -1479,8 +1490,17 @@ export default function AssetTracker() {
                   </>
                 )}
               </div>
-              <div style={{flexShrink:0,paddingBottom:9}}>
-                <input type="checkbox" checked={billForm.auto_debit} onChange={e=>setBillForm(f=>({...f,auto_debit:e.target.checked}))} style={{width:18,height:18,cursor:"pointer",display:"block"}}/>
+              <div style={{flexShrink:0,display:"flex",flexDirection:"column",gap:2,height:38}}>
+                <button type="button" title="自動扣款" onClick={()=>setBillForm(f=>({...f,auto_debit:!f.auto_debit,waived:false}))} style={{
+                  width:22,height:18,borderRadius:5,cursor:"pointer",fontSize:11,padding:0,lineHeight:"16px",fontFamily:"inherit",
+                  border:`1px solid ${billForm.auto_debit?T.accent:T.border}`,
+                  background:billForm.auto_debit?`${T.accent}22`:T.surface,
+                }}>🔄</button>
+                <button type="button" title="本月免繳" onClick={()=>setBillForm(f=>({...f,waived:!f.waived,auto_debit:false}))} style={{
+                  width:22,height:18,borderRadius:5,cursor:"pointer",fontSize:11,padding:0,lineHeight:"16px",fontFamily:"inherit",
+                  border:`1px solid ${billForm.waived?"#F59E0B":T.border}`,
+                  background:billForm.waived?"#F59E0B22":T.surface,
+                }}>⛔</button>
               </div>
               <div style={{width:76,flexShrink:0}}>
                 <div style={{...labelSt,opacity:0.6}}>到期日</div>
@@ -1529,7 +1549,16 @@ export default function AssetTracker() {
                     </div>
                     <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
                       <div style={{flex:1,minWidth:0}}>
-                        {editBillForm.auto_debit ? (
+                        {editBillForm.waived ? (
+                          <>
+                            <div style={labelSt}>繳費方式</div>
+                            <div style={{
+                              ...inputSt,height:38,boxSizing:"border-box",display:"flex",alignItems:"center",gap:6,
+                              color:"#F59E0B",fontWeight:600,
+                              background:"#F59E0B14",border:"1px solid #F59E0B40"
+                            }}>⛔ 本月免繳</div>
+                          </>
+                        ) : editBillForm.auto_debit ? (
                           <>
                             <div style={labelSt}>繳費方式</div>
                             <div style={{
@@ -1545,8 +1574,17 @@ export default function AssetTracker() {
                           </>
                         )}
                       </div>
-                      <div style={{flexShrink:0,paddingBottom:9}}>
-                        <input type="checkbox" checked={editBillForm.auto_debit} onChange={e=>setEditBillForm(f=>({...f,auto_debit:e.target.checked}))} style={{width:18,height:18,cursor:"pointer",display:"block"}}/>
+                      <div style={{flexShrink:0,display:"flex",flexDirection:"column",gap:2,height:38}}>
+                        <button type="button" title="自動扣款" onClick={()=>setEditBillForm(f=>({...f,auto_debit:!f.auto_debit,waived:false}))} style={{
+                          width:22,height:18,borderRadius:5,cursor:"pointer",fontSize:11,padding:0,lineHeight:"16px",fontFamily:"inherit",
+                          border:`1px solid ${editBillForm.auto_debit?T.accent:T.border}`,
+                          background:editBillForm.auto_debit?`${T.accent}22`:T.surface,
+                        }}>🔄</button>
+                        <button type="button" title="本月免繳" onClick={()=>setEditBillForm(f=>({...f,waived:!f.waived,auto_debit:false}))} style={{
+                          width:22,height:18,borderRadius:5,cursor:"pointer",fontSize:11,padding:0,lineHeight:"16px",fontFamily:"inherit",
+                          border:`1px solid ${editBillForm.waived?"#F59E0B":T.border}`,
+                          background:editBillForm.waived?"#F59E0B22":T.surface,
+                        }}>⛔</button>
                       </div>
                       <div style={{width:76,flexShrink:0}}>
                         <div style={{...labelSt,opacity:0.6}}>到期日</div>
@@ -1580,7 +1618,12 @@ export default function AssetTracker() {
                     border:`1px solid ${T.border}`,
                     padding:"12px 14px",display:"flex",alignItems:"center",gap:10
                   }}>
-                    {b.auto_debit ? (
+                    {b.waived ? (
+                      <div style={{
+                        flexShrink:0,fontSize:10,fontWeight:700,color:"#F59E0B",background:"#F59E0B22",
+                        borderRadius:20,padding:"4px 8px",whiteSpace:"nowrap"
+                      }}>⛔ 免繳</div>
+                    ) : b.auto_debit ? (
                       <div style={{
                         flexShrink:0,fontSize:10,fontWeight:700,color:"#60A5FA",background:"#60A5FA22",
                         borderRadius:20,padding:"4px 8px",whiteSpace:"nowrap"
@@ -1596,13 +1639,14 @@ export default function AssetTracker() {
                       <div style={{fontSize:14,fontWeight:700,color:(b.paid&&!b.auto_debit)?T.muted:T.text,textDecoration:(b.paid&&!b.auto_debit)?"line-through":"none"}}>{b.name}</div>
                       <div style={{fontSize:11,color:T.muted}}>
                         {!!b.due_day&&`每月${b.due_day}日`}
-                        {!!b.due_day&&b.paid&&b.paid_date&&"・"}
-                        {!b.auto_debit&&b.paid&&b.paid_date&&`已繳・${b.paid_date}`}
+                        {!!b.due_day&&(b.waived||(b.paid&&b.paid_date))&&"・"}
+                        {b.waived&&"本月免繳"}
+                        {!b.auto_debit&&!b.waived&&b.paid&&b.paid_date&&`已繳・${b.paid_date}`}
                         {b.note&&`・${b.note}`}
                       </div>
                     </div>
                     <div style={{flexShrink:0,textAlign:"right"}}>
-                      <span style={{fontSize:15,fontWeight:700,color:T.text}}>{(b.amount||0).toLocaleString()}</span>
+                      <span style={{fontSize:15,fontWeight:700,color:b.waived?T.muted:T.text,textDecoration:b.waived?"line-through":"none"}}>{(b.amount||0).toLocaleString()}</span>
                       <span style={{fontSize:12,color:T.muted,marginLeft:2}}>元</span>
                     </div>
                   </div>
