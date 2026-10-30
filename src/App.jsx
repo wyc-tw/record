@@ -858,6 +858,17 @@ export default function AssetTracker() {
     setBillForm(f=>({...f, template_id:t.id, name:t.name, due_day:t.due_day||"", auto_debit:!!t.auto_debit, waived:false}));
   };
 
+  // 繳費狀態下拉選單（正常／自動扣款／本月免繳，三選一，統一用這組函式切換避免各處邏輯兜不攏）
+  const billStatusValue = billForm.waived ? "waived" : billForm.auto_debit ? "auto" : "normal";
+  const setBillStatus = (val) => {
+    setBillForm(f=>({
+      ...f,
+      auto_debit: val==="auto",
+      waived: val==="waived",
+      paid_date: val==="normal" ? (f.paid_date || new Date().toISOString().slice(0,10)) : f.paid_date,
+    }));
+  };
+
   const updateBillField = async (id, payload) => {
     setBills(p=>p.map(b=>b.id===id?{...b,...payload}:b)); // 先更新畫面，體感較快
     try {
@@ -868,6 +879,15 @@ export default function AssetTracker() {
   const startEditBill = (b) => {
     setEditingBillId(b.id);
     setEditBillForm({name:b.name||"", amount:b.amount||"", due_day:b.due_day||"", auto_debit:!!b.auto_debit, waived:!!b.waived, paid_date:b.paid_date||"", note:b.note||""});
+  };
+  const editBillStatusValue = editBillForm ? (editBillForm.waived ? "waived" : editBillForm.auto_debit ? "auto" : "normal") : "normal";
+  const setEditBillStatus = (val) => {
+    setEditBillForm(f=>({
+      ...f,
+      auto_debit: val==="auto",
+      waived: val==="waived",
+      paid_date: val==="normal" ? (f.paid_date || new Date().toISOString().slice(0,10)) : f.paid_date,
+    }));
   };
   const saveEditBill = async (id) => {
     const payload = {
@@ -1429,23 +1449,21 @@ export default function AssetTracker() {
           {/* ＋ 新增帳單（完全手動，不會有任何自動觸發） */}
           <div style={{background:T.surface,borderRadius:12,border:`1px solid ${T.border}`,padding:16,marginBottom:16}}>
             {billTemplates.length>0&&(
-              <div style={{marginBottom:14}}>
-                <div style={labelSt}>常用名稱（點選快速帶入）</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                  {billTemplates.map(t=>{
-                    const active = billForm.template_id===t.id;
-                    return (
-                      <button key={t.id} type="button" onClick={()=>pickBillTemplate(t)} style={{
-                        background:active?`${T.accent}22`:T.card,
-                        border:`1px solid ${active?T.accent:T.border}`,
-                        color:active?T.accent:T.text,
-                        borderRadius:20,padding:"7px 8px",fontSize:12,fontWeight:active?700:500,
-                        cursor:"pointer",fontFamily:"inherit",
-                        overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"
-                      }}>{t.auto_debit?"🔄 ":""}{t.name}</button>
-                    );
-                  })}
-                </div>
+              <div style={{marginBottom:10}}>
+                <div style={labelSt}>常用名稱（選填，快速帶入）</div>
+                <select
+                  value={billForm.template_id||""}
+                  onChange={e=>{
+                    const t = billTemplates.find(x=>x.id===e.target.value);
+                    if (t) pickBillTemplate(t); else setBillForm(f=>({...f,template_id:""}));
+                  }}
+                  style={{...inputSt,height:38,boxSizing:"border-box"}}
+                >
+                  <option value="">— 不選，直接手動輸入 —</option>
+                  {billTemplates.map(t=>(
+                    <option key={t.id} value={t.id}>{t.auto_debit?"🔄 ":""}{t.name}</option>
+                  ))}
+                </select>
               </div>
             )}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
@@ -1463,50 +1481,28 @@ export default function AssetTracker() {
                 />
               </div>
             </div>
-            <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBottom:10}}>
-              <div style={{flex:1,minWidth:0}}>
-                {billForm.waived ? (
-                  <>
-                    <div style={labelSt}>繳費方式</div>
-                    <div style={{
-                      ...inputSt,height:38,boxSizing:"border-box",display:"flex",alignItems:"center",gap:6,
-                      color:"#F59E0B",fontWeight:600,
-                      background:"#F59E0B14",border:"1px solid #F59E0B40"
-                    }}>⛔ 本月免繳</div>
-                  </>
-                ) : billForm.auto_debit ? (
-                  <>
-                    <div style={labelSt}>繳費方式</div>
-                    <div style={{
-                      ...inputSt,height:38,boxSizing:"border-box",display:"flex",alignItems:"center",gap:6,
-                      color:T.accent,fontWeight:600,
-                      background:`${T.accent}14`,border:`1px solid ${T.accent}40`
-                    }}>🔄 已設定自動扣款</div>
-                  </>
-                ) : (
-                  <>
+            <div style={{marginBottom:10}}>
+              <div style={labelSt}>繳費狀態</div>
+              <select value={billStatusValue} onChange={e=>setBillStatus(e.target.value)} style={{...inputSt,height:38,boxSizing:"border-box"}}>
+                <option value="normal">💳 正常（手動記錄繳費日）</option>
+                <option value="auto">🔄 自動扣款</option>
+                <option value="waived">⛔ 本月免繳</option>
+              </select>
+            </div>
+            {billStatusValue!=="waived"&&(
+              <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBottom:10}}>
+                {billStatusValue==="normal"&&(
+                  <div style={{flex:1,minWidth:0}}>
                     <div style={labelSt}>繳費日</div>
                     <input type="date" value={billForm.paid_date} onChange={e=>setBillForm(f=>({...f,paid_date:e.target.value}))} style={{...inputSt,height:38,boxSizing:"border-box",minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
-                  </>
+                  </div>
                 )}
+                <div style={{flex:billStatusValue==="auto"?1:"0 0 76px",minWidth:0}}>
+                  <div style={{...labelSt,opacity:billStatusValue==="auto"?1:0.6}}>到期日{billStatusValue==="auto"?"（選填）":""}</div>
+                  <input type="number" min="1" max="31" value={billForm.due_day} onChange={e=>setBillForm(f=>({...f,due_day:e.target.value}))} style={{...inputSt,fontSize:13,height:38,boxSizing:"border-box"}}/>
+                </div>
               </div>
-              <div style={{flexShrink:0,display:"flex",flexDirection:"column",gap:2,height:38}}>
-                <button type="button" title="自動扣款" onClick={()=>setBillForm(f=>({...f,auto_debit:!f.auto_debit,waived:false}))} style={{
-                  width:22,height:18,borderRadius:5,cursor:"pointer",fontSize:11,padding:0,lineHeight:"16px",fontFamily:"inherit",
-                  border:`1px solid ${billForm.auto_debit?T.accent:T.border}`,
-                  background:billForm.auto_debit?`${T.accent}22`:T.surface,
-                }}>🔄</button>
-                <button type="button" title="本月免繳" onClick={()=>setBillForm(f=>({...f,waived:!f.waived,auto_debit:false}))} style={{
-                  width:22,height:18,borderRadius:5,cursor:"pointer",fontSize:11,padding:0,lineHeight:"16px",fontFamily:"inherit",
-                  border:`1px solid ${billForm.waived?"#F59E0B":T.border}`,
-                  background:billForm.waived?"#F59E0B22":T.surface,
-                }}>⛔</button>
-              </div>
-              <div style={{width:76,flexShrink:0}}>
-                <div style={{...labelSt,opacity:0.6}}>到期日</div>
-                <input type="number" min="1" max="31" value={billForm.due_day} onChange={e=>setBillForm(f=>({...f,due_day:e.target.value}))} style={{...inputSt,fontSize:13,height:38,boxSizing:"border-box"}}/>
-              </div>
-            </div>
+            )}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
               <div>
                 <div style={labelSt}>金額（元）</div>
@@ -1547,50 +1543,28 @@ export default function AssetTracker() {
                         <input type="text" inputMode="decimal" value={editBillForm.amount} onChange={e=>setEditBillForm(f=>({...f,amount:e.target.value}))} style={inputSt}/>
                       </div>
                     </div>
-                    <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
-                      <div style={{flex:1,minWidth:0}}>
-                        {editBillForm.waived ? (
-                          <>
-                            <div style={labelSt}>繳費方式</div>
-                            <div style={{
-                              ...inputSt,height:38,boxSizing:"border-box",display:"flex",alignItems:"center",gap:6,
-                              color:"#F59E0B",fontWeight:600,
-                              background:"#F59E0B14",border:"1px solid #F59E0B40"
-                            }}>⛔ 本月免繳</div>
-                          </>
-                        ) : editBillForm.auto_debit ? (
-                          <>
-                            <div style={labelSt}>繳費方式</div>
-                            <div style={{
-                              ...inputSt,height:38,boxSizing:"border-box",display:"flex",alignItems:"center",gap:6,
-                              color:T.accent,fontWeight:600,
-                              background:`${T.accent}14`,border:`1px solid ${T.accent}40`
-                            }}>🔄 已設定自動扣款</div>
-                          </>
-                        ) : (
-                          <>
+                    <div>
+                      <div style={labelSt}>繳費狀態</div>
+                      <select value={editBillStatusValue} onChange={e=>setEditBillStatus(e.target.value)} style={{...inputSt,height:38,boxSizing:"border-box"}}>
+                        <option value="normal">💳 正常（手動記錄繳費日）</option>
+                        <option value="auto">🔄 自動扣款</option>
+                        <option value="waived">⛔ 本月免繳</option>
+                      </select>
+                    </div>
+                    {editBillStatusValue!=="waived"&&(
+                      <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
+                        {editBillStatusValue==="normal"&&(
+                          <div style={{flex:1,minWidth:0}}>
                             <div style={labelSt}>繳費日</div>
                             <input type="date" value={editBillForm.paid_date} onChange={e=>setEditBillForm(f=>({...f,paid_date:e.target.value}))} style={{...inputSt,height:38,boxSizing:"border-box",minWidth:0,width:"100%",WebkitAppearance:"none",appearance:"none"}}/>
-                          </>
+                          </div>
                         )}
+                        <div style={{flex:editBillStatusValue==="auto"?1:"0 0 76px",minWidth:0}}>
+                          <div style={{...labelSt,opacity:editBillStatusValue==="auto"?1:0.6}}>到期日{editBillStatusValue==="auto"?"（選填）":""}</div>
+                          <input type="number" min="1" max="31" value={editBillForm.due_day} onChange={e=>setEditBillForm(f=>({...f,due_day:e.target.value}))} style={{...inputSt,fontSize:13,height:38,boxSizing:"border-box"}}/>
+                        </div>
                       </div>
-                      <div style={{flexShrink:0,display:"flex",flexDirection:"column",gap:2,height:38}}>
-                        <button type="button" title="自動扣款" onClick={()=>setEditBillForm(f=>({...f,auto_debit:!f.auto_debit,waived:false}))} style={{
-                          width:22,height:18,borderRadius:5,cursor:"pointer",fontSize:11,padding:0,lineHeight:"16px",fontFamily:"inherit",
-                          border:`1px solid ${editBillForm.auto_debit?T.accent:T.border}`,
-                          background:editBillForm.auto_debit?`${T.accent}22`:T.surface,
-                        }}>🔄</button>
-                        <button type="button" title="本月免繳" onClick={()=>setEditBillForm(f=>({...f,waived:!f.waived,auto_debit:false}))} style={{
-                          width:22,height:18,borderRadius:5,cursor:"pointer",fontSize:11,padding:0,lineHeight:"16px",fontFamily:"inherit",
-                          border:`1px solid ${editBillForm.waived?"#F59E0B":T.border}`,
-                          background:editBillForm.waived?"#F59E0B22":T.surface,
-                        }}>⛔</button>
-                      </div>
-                      <div style={{width:76,flexShrink:0}}>
-                        <div style={{...labelSt,opacity:0.6}}>到期日</div>
-                        <input type="number" min="1" max="31" value={editBillForm.due_day} onChange={e=>setEditBillForm(f=>({...f,due_day:e.target.value}))} style={{...inputSt,fontSize:13,height:38,boxSizing:"border-box"}}/>
-                      </div>
-                    </div>
+                    )}
                     <div>
                       <div style={labelSt}>備註（選填）</div>
                       <input value={editBillForm.note} onChange={e=>setEditBillForm(f=>({...f,note:e.target.value}))} style={inputSt}/>
